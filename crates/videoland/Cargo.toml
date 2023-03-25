@@ -1,17 +1,19 @@
-[workspace]
 [package]
-name = "m"
+name = "videoland"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sceneland = { path = "crates/sceneland" }
-videoland = { path = "crates/videoland" }
-
 anyhow = "1.0.69"
+ash = "0.37"
+ash-window = "0.12.0"
 raw-window-handle = "0.5.1"
 tracing = "0.1.37"
-tracing-subscriber = "0.3.16"
 winit = "0.28.2"
+
+[dependencies.gpu-allocator]
+version = "0.22.0"
+features = ["ash", "vulkan"]
+default-features = false
