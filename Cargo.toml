@@ -9,9 +9,12 @@ edition = "2021"
 anyhow = "1.0.69"
 ash = "0.37"
 ash-window = "0.12.0"
+glam = "0.23.0"
+obj = "0.10.2"
 raw-window-handle = "0.5.1"
 tracing = "0.1.37"
 winit = "0.28.2"
+uuid = { version = "1.3.0", features = ["v4"] }
 
 [dependencies.gpu-allocator]
 version = "0.22.0"

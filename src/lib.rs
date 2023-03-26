@@ -1,6 +1,8 @@
 #![allow(dead_code)]
+#![allow(clippy::new_without_default)]
 
 mod gapi;
+pub mod res;
 
 use crate::gapi::*;
 use anyhow::{Context, Result};
