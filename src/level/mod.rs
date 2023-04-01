@@ -27,7 +27,7 @@ pub enum Object {
 
 #[derive(Serialize, Deserialize)]
 pub struct Entity {
-    transform: glam::Mat4,
+    transform: Mat4,
     object: Object,
 }
 
