@@ -1,0 +1,73 @@
+use std::collections::HashMap;
+
+use glam::Mat4;
+use serde::{Serialize, Deserialize};
+use uuid::Uuid;
+
+pub struct Levels {
+    levels: HashMap<Uuid, Level>,
+}
+
+impl Levels {
+    pub fn new() -> Self {
+        Self {
+            levels: HashMap::new(),
+        }
+    }
+
+    pub fn add_level(&mut self, uuid: Uuid, level: Level) {
+        self.levels.insert(uuid, level);
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum Object {
+    Model(Uuid),
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Entity {
+    transform: glam::Mat4,
+    object: Object,
+}
+
+impl Entity {
+    pub fn new(object: Object) -> Self {
+        Self {
+            transform: Mat4::IDENTITY,
+            object,
+        }
+    }
+
+    pub fn with_transform(mut self, transform: Mat4) -> Self {
+        self.transform = transform;
+        self
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Level {
+    entities: HashMap<Uuid, Entity>,
+}
+
+impl Level {
+    pub fn new() -> Self {
+        Self {
+            entities: HashMap::new(),
+        }
+    }
+
+    pub fn add(&mut self, entity: Entity) -> Uuid {
+        let id = Uuid::new_v4();
+        self.entities.insert(id, entity);
+        id
+    }
+
+    pub fn load(data: &[u8]) -> Self {
+        serde_json::from_slice(data).unwrap()
+    }
+
+    pub fn save(&self) -> Vec<u8> {
+        serde_json::to_vec_pretty(self).unwrap()
+    }
+}

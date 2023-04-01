@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Ok, Result};
 use glam::{Vec2, Vec3};
-use uuid::Uuid;
 
+#[derive(Clone)]
 pub struct Resources {
     root: PathBuf,
 }
@@ -75,14 +75,12 @@ impl Model {
 }
 
 pub struct Mesh {
-    id: Uuid,
     data: Vec<f32>,
 }
 
 impl Mesh {
     pub fn new() -> Mesh {
         Mesh {
-            id: Uuid::new_v4(),
             data: Vec::new(),
         }
     }
