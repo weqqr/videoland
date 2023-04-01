@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use glam::Mat4;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub struct Levels {

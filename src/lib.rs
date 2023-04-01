@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 #![allow(clippy::new_without_default)]
 
-mod gapi;
-pub mod res;
-pub mod renderer;
-pub mod level;
 pub mod automata;
+mod gapi;
+pub mod import;
+pub mod level;
+pub mod renderer;
+pub mod res;
 
 pub use uuid;
