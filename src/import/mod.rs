@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::io::Cursor;
 
-use crate::res::{Vertex, Model, Mesh};
+use crate::resources::{Vertex, Model, Mesh};
 
 pub fn obj(data: Vec<u8>) -> Result<Model> {
     let reader = Cursor::new(data);

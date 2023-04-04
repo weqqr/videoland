@@ -6,6 +6,6 @@ mod gapi;
 pub mod import;
 pub mod level;
 pub mod renderer;
-pub mod res;
+pub mod resources;
 
 pub use uuid;

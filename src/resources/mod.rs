@@ -4,10 +4,12 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Ok, Result};
 use glam::{Vec2, Vec3};
+use serde::{Serialize, Deserialize};
 
 use crate::import;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct ResourceId(String);
 
 impl fmt::Display for ResourceId {
