@@ -6,11 +6,6 @@ use uuid::Uuid;
 
 use crate::resources::ResourceId;
 
-pub struct RenderList {
-    pub upload: Vec<ResourceId>,
-    pub render: Vec<Uuid>,
-}
-
 pub struct Levels {
     levels: HashMap<Uuid, Level>,
 }
@@ -76,18 +71,5 @@ impl Level {
 
     pub fn save(&self) -> Vec<u8> {
         serde_json::to_vec_pretty(self).unwrap()
-    }
-
-    pub fn render(&self) -> RenderList {
-        let upload = Vec::new();
-        let mut render = Vec::new();
-
-        for (id, entity) in &self.entities {
-            match entity.object {
-                Object::Model(_) => {},
-            }
-        }
-
-        RenderList { upload, render }
     }
 }

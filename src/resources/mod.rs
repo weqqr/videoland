@@ -1,8 +1,11 @@
+pub mod shader;
+
+use anyhow::anyhow;
 use std::borrow::Borrow;
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
-use anyhow::{Context, Ok, Result};
+use anyhow::{Context, Result};
 use glam::{Vec2, Vec3};
 use serde::{Serialize, Deserialize};
 
@@ -98,3 +101,4 @@ pub struct Vertex {
     pub normal: Vec3,
     pub texcoord: Vec2,
 }
+

@@ -1,6 +1,8 @@
-system requirements:
+# Videoland
 
-- Vulkan 1.3
-  - Timeline semaphores
-  - Dynamic rendering
-- DXC binaries in /bin
+It's not for you.
+
+System requirements:
+
+- Vulkan 1.3 support
+- DirectX Shader Compiler binaries in /bin
