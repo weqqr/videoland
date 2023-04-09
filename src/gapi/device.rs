@@ -6,7 +6,7 @@ use ash::vk::{self, DebugUtilsMessageSeverityFlagsEXT};
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 
 use crate::gapi::command::CommandEncoder;
-use crate::gapi::surface::{SwapchainFrame, Surface};
+use crate::gapi::surface::{Surface, SwapchainFrame};
 
 struct PhysicalDevice {
     name: String,

@@ -111,4 +111,3 @@ pub struct CommandBuffer {
 }
 
 impl CommandBuffer {}
-

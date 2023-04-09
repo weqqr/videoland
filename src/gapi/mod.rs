@@ -1,6 +1,7 @@
 pub mod buffer;
 pub mod command;
 pub mod device;
+pub mod pipeline;
 pub mod surface;
 
 pub use self::buffer::*;
