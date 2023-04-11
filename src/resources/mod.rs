@@ -4,12 +4,14 @@ use anyhow::anyhow;
 use std::borrow::Borrow;
 use std::fmt;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 use glam::{Vec2, Vec3};
 use serde::{Deserialize, Serialize};
 
 use crate::import;
+use crate::resources::shader::{Shader, ShaderCompiler, ShaderStage};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -31,12 +33,50 @@ impl ResourceId {
 
 #[derive(Clone)]
 pub struct Resources {
-    root: PathBuf,
+    loader: FsDataLoader,
+    shader_compiler: Arc<Mutex<ShaderCompiler>>,
 }
 
 impl Resources {
     pub fn new<P: Into<PathBuf>>(root: P) -> Self {
-        Self { root: root.into() }
+        Self {
+            loader: FsDataLoader::new(root),
+            shader_compiler: Arc::new(Mutex::new(ShaderCompiler::new())),
+        }
+    }
+
+    pub fn load_binary<I: Borrow<ResourceId>>(&self, id: I) -> Result<Vec<u8>> {
+        self.loader.load_binary(id)
+    }
+
+    pub fn load_model<I: Borrow<ResourceId>>(&self, id: I) -> Result<Model> {
+        let data = self.loader.load_binary(id)?;
+
+        import::obj(data)
+    }
+
+    pub fn load_shader<I: Borrow<ResourceId>>(&self, id: I, stage: ShaderStage) -> Result<Shader> {
+        let path = self.loader.resolve_resource_id(id.borrow());
+        println!("{:?}", path);
+        let data = self.load_binary(id).unwrap();
+        println!("{:?}", data);
+
+        let shader_compiler = self.shader_compiler.lock().unwrap();
+
+        shader_compiler.compile_hlsl(&self.loader, path.to_str().unwrap(), stage)
+    }
+}
+
+#[derive(Clone)]
+pub struct FsDataLoader {
+    root: PathBuf,
+}
+
+impl FsDataLoader {
+    pub fn new<P: Into<PathBuf>>(root: P) -> Self {
+        Self {
+            root: root.into(),
+        }
     }
 
     fn resolve_resource_id(&self, id: &ResourceId) -> PathBuf {
@@ -52,10 +92,11 @@ impl Resources {
         Ok(data)
     }
 
-    pub fn load_model<I: Borrow<ResourceId>>(&self, id: I) -> Result<Model> {
-        let data = self.load_binary(id)?;
+    pub fn load_binary_from_raw_path(&self, path: &str) -> Result<Vec<u8>> {
+        let data =
+            std::fs::read(path).with_context(|| format!("unable to load {}", path))?;
 
-        import::obj(data)
+        Ok(data)
     }
 }
 

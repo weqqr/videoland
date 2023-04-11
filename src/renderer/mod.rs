@@ -1,4 +1,6 @@
 use crate::gapi::*;
+use crate::resources::{Resources, ResourceId};
+use crate::resources::shader::ShaderStage;
 use anyhow::{Context, Result};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use tracing::instrument;
@@ -18,7 +20,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(window: Window) -> Result<Self> {
+    pub fn new(window: Window, resources: &Resources) -> Result<Self> {
         let instance = Instance::new(window.raw_display_handle()).context("create instance")?;
         let device = instance.create_device()?;
         let mut surface = instance.create_surface(
@@ -33,6 +35,10 @@ impl Renderer {
             width: size.width,
             height: size.height,
         });
+
+        let shader_id = ResourceId::new("/dsots/shaders/test.hlsl");
+        let vertex_shader = resources.load_shader(shader_id.clone(), ShaderStage::Vertex)?;
+        let fragment_shader = resources.load_shader(shader_id, ShaderStage::Fragment)?;
 
         let encoder = device.create_command_encoder(FRAMES)?;
 
