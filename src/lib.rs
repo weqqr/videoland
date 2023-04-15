@@ -7,5 +7,6 @@ pub mod import;
 pub mod level;
 pub mod renderer;
 pub mod resources;
+pub mod input;
 
 pub use uuid;
