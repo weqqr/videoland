@@ -18,6 +18,10 @@ pub struct SwapchainFrame {
 }
 
 impl SwapchainFrame {
+    pub fn view(&self) -> vk::ImageView {
+        self.view
+    }
+
     pub fn present(&self) {
         let wait_semaphores = &[self.present_semaphore];
         let swapchains = &[self.swapchain];

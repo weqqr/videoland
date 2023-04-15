@@ -74,6 +74,10 @@ impl Renderer {
         let frame = self.surface.acquire_next_image();
         self.encoder.begin(frame);
 
+        self.encoder.begin_rendering(frame.view());
+
+        self.encoder.end_rendering();
+
         self.device.finish_frame(&self.encoder, frame);
         frame.present();
         self.device.wait_for_sync();

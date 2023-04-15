@@ -1,16 +1,24 @@
 use anyhow::Result;
+use ash::extensions::khr;
 use ash::vk;
 
 use crate::gapi::surface::SwapchainFrame;
 
 pub struct CommandEncoder {
     device: ash::Device,
+    khr_dynamic_rendering: khr::DynamicRendering,
+
     pub(super) cmd_pool: vk::CommandPool,
     pub(super) cmd_bufs: Vec<vk::CommandBuffer>,
 }
 
 impl CommandEncoder {
-    pub(super) fn new(device: &ash::Device, queue_index: u32, buffer_count: u32) -> Result<Self> {
+    pub(super) fn new(
+        device: &ash::Device,
+        khr_dynamic_rendering: khr::DynamicRendering,
+        queue_index: u32,
+        buffer_count: u32,
+    ) -> Result<Self> {
         let create_info = vk::CommandPoolCreateInfo::builder()
             .queue_family_index(queue_index)
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
@@ -26,13 +34,53 @@ impl CommandEncoder {
 
         Ok(CommandEncoder {
             device: device.clone(),
+            khr_dynamic_rendering,
             cmd_pool,
             cmd_bufs,
         })
     }
 
-    fn current_command_buffer(&self) -> vk::CommandBuffer {
+    pub fn current_command_buffer(&self) -> vk::CommandBuffer {
         self.cmd_bufs[0]
+    }
+
+    pub fn begin_rendering(&self, image_view: vk::ImageView) {
+        let color_attachments = &[vk::RenderingAttachmentInfo::builder()
+            .image_view(image_view)
+            .image_layout(vk::ImageLayout::ATTACHMENT_OPTIMAL_KHR)
+            .load_op(vk::AttachmentLoadOp::CLEAR)
+            .store_op(vk::AttachmentStoreOp::STORE)
+            .clear_value(vk::ClearValue {
+                color: vk::ClearColorValue {
+                    float32: [1.0, 1.0, 1.0, 1.0],
+                },
+            })
+            .build()];
+
+        let render_area = vk::Rect2D {
+            offset: vk::Offset2D { x: 0, y: 0 },
+            extent: vk::Extent2D {
+                width: 200,
+                height: 200,
+            },
+        };
+
+        let rendering_info = vk::RenderingInfoKHR::builder()
+            .color_attachments(color_attachments)
+            .render_area(render_area)
+            .layer_count(1);
+
+        unsafe {
+            self.khr_dynamic_rendering
+                .cmd_begin_rendering(self.current_command_buffer(), &rendering_info);
+        }
+    }
+
+    pub fn end_rendering(&self) {
+        unsafe {
+            self.khr_dynamic_rendering
+                .cmd_end_rendering(self.current_command_buffer());
+        }
     }
 
     pub fn begin(&mut self, frame: &SwapchainFrame) {

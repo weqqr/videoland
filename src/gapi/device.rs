@@ -224,7 +224,7 @@ impl Drop for Device {
 
 impl Device {
     pub fn create_command_encoder(&self, frames: u32) -> Result<CommandEncoder> {
-        CommandEncoder::new(&self.device, self.graphics_queue_family_index, frames)
+        CommandEncoder::new(&self.device, self.khr_dynamic_rendering.clone(), self.graphics_queue_family_index, frames)
     }
 
     pub fn create_shader_module(&self, shader: &Shader) -> Result<ShaderModule> {
