@@ -65,7 +65,7 @@ impl ShaderStage {
     pub fn entry_point(&self) -> &'static str {
         match self {
             ShaderStage::Vertex => "vs_main",
-            ShaderStage::Fragment => "ps_main",
+            ShaderStage::Fragment => "fs_main",
             ShaderStage::Compute => "cs_main",
         }
     }

@@ -6,7 +6,9 @@ use ash::vk::{self, DebugUtilsMessageSeverityFlagsEXT};
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 
 use crate::gapi::command::CommandEncoder;
+use crate::gapi::pipeline::{ShaderModule, Pipeline, PipelineDesc};
 use crate::gapi::surface::{Surface, SwapchainFrame};
+use crate::resources::shader::Shader;
 
 struct PhysicalDevice {
     name: String,
@@ -220,6 +222,14 @@ impl Drop for Device {
 impl Device {
     pub fn create_command_encoder(&self, frames: u32) -> Result<CommandEncoder> {
         CommandEncoder::new(&self.device, self.graphics_queue_family_index, frames)
+    }
+
+    pub fn create_shader_module(&self, shader: &Shader) -> Result<ShaderModule> {
+        ShaderModule::new(&self.device, shader.data())
+    }
+
+    pub fn create_pipeline(&self, desc: &PipelineDesc) -> Result<Pipeline> {
+        Pipeline::new(&self.device, desc)
     }
 
     pub fn destroy_command_encoder(&self, encoder: &mut CommandEncoder) {

@@ -1,4 +1,5 @@
 use crate::gapi::*;
+use crate::gapi::pipeline::{Pipeline, PipelineDesc};
 use crate::resources::{Resources, ResourceId};
 use crate::resources::shader::ShaderStage;
 use anyhow::{Context, Result};
@@ -39,6 +40,14 @@ impl Renderer {
         let shader_id = ResourceId::new("/dsots/shaders/test.hlsl");
         let vertex_shader = resources.load_shader(shader_id.clone(), ShaderStage::Vertex)?;
         let fragment_shader = resources.load_shader(shader_id, ShaderStage::Fragment)?;
+
+        let vertex_shader = device.create_shader_module(&vertex_shader)?;
+        let fragment_shader = device.create_shader_module(&fragment_shader)?;
+
+        let pipeline = device.create_pipeline(&PipelineDesc {
+            vertex_shader,
+            fragment_shader,
+        })?;
 
         let encoder = device.create_command_encoder(FRAMES)?;
 

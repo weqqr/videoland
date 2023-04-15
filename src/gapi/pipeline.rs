@@ -1,7 +1,7 @@
 use std::ffi::CStr;
 
 use anyhow::Result;
-use ash::vk;
+use ash::vk::{self, PushConstantRange};
 
 pub struct ShaderModule {
     shader_module: vk::ShaderModule,
@@ -70,15 +70,28 @@ impl Pipeline {
             .logic_op_enable(false)
             .attachments(color_blend_attachments);
 
-        let dynamic_state = vk::PipelineDynamicStateCreateInfo::builder()
-            .dynamic_states(&[vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]);
+        let dynamic_state = vk::PipelineDynamicStateCreateInfo::builder().dynamic_states(&[
+            vk::DynamicState::VIEWPORT,
+            vk::DynamicState::SCISSOR,
+            vk::DynamicState::LINE_WIDTH,
+        ]);
+
+        let ranges = &[PushConstantRange::builder()
+            .size(256)
+            .offset(0)
+            .stage_flags(vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT)
+            .build()];
 
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::builder()
-            .push_constant_ranges(&[])
+            .push_constant_ranges(ranges)
             .set_layouts(&[]);
 
         let pipeline_layout =
             unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None)? };
+
+        let viewport_state = vk::PipelineViewportStateCreateInfo::builder()
+            .viewport_count(1)
+            .scissor_count(1);
 
         let create_info = vk::GraphicsPipelineCreateInfo::builder()
             .input_assembly_state(&input_assembly_state)
@@ -88,7 +101,8 @@ impl Pipeline {
             .rasterization_state(&rasterization_state)
             .stages(shader_stages)
             .color_blend_state(&color_blend_state)
-            .dynamic_state(&dynamic_state);
+            .dynamic_state(&dynamic_state)
+            .viewport_state(&viewport_state);
 
         let pipeline = unsafe {
             device
