@@ -2,6 +2,7 @@ use anyhow::Result;
 use ash::extensions::khr;
 use ash::vk;
 
+use crate::gapi::ImageView;
 use crate::gapi::surface::SwapchainFrame;
 
 pub struct CommandEncoder {
@@ -44,9 +45,9 @@ impl CommandEncoder {
         self.cmd_bufs[0]
     }
 
-    pub fn begin_rendering(&self, image_view: vk::ImageView) {
+    pub fn begin_rendering(&self, image_view: ImageView) {
         let color_attachments = &[vk::RenderingAttachmentInfo::builder()
-            .image_view(image_view)
+            .image_view(image_view.image_view)
             .image_layout(vk::ImageLayout::ATTACHMENT_OPTIMAL_KHR)
             .load_op(vk::AttachmentLoadOp::CLEAR)
             .store_op(vk::AttachmentStoreOp::STORE)
@@ -60,8 +61,8 @@ impl CommandEncoder {
         let render_area = vk::Rect2D {
             offset: vk::Offset2D { x: 0, y: 0 },
             extent: vk::Extent2D {
-                width: 200,
-                height: 200,
+                width: image_view.width(),
+                height: image_view.height(),
             },
         };
 

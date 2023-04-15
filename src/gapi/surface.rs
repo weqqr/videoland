@@ -3,6 +3,8 @@ use ash::extensions::khr;
 use ash::vk;
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 
+use crate::gapi::ImageView;
+
 pub struct SwapchainFrame {
     khr_swapchain: khr::Swapchain,
     swapchain: vk::SwapchainKHR,
@@ -14,12 +16,16 @@ pub struct SwapchainFrame {
     format: vk::Format,
     pub(super) acquire_semaphore: vk::Semaphore,
     pub(super) present_semaphore: vk::Semaphore,
-    target_size: [u16; 2],
+    size: [u32; 2],
 }
 
 impl SwapchainFrame {
-    pub fn view(&self) -> vk::ImageView {
-        self.view
+    pub fn view(&self) -> ImageView {
+        ImageView {
+            image_view: self.view,
+            width: self.size[0],
+            height: self.size[1],
+        }
     }
 
     pub fn present(&self) {
@@ -164,7 +170,7 @@ impl Surface {
                 .get_swapchain_images(self.swapchain)
                 .unwrap()
         };
-        let target_size = [configuration.width as u16, configuration.height as u16];
+        let size = [configuration.width, configuration.height];
         let subresource_range = vk::ImageSubresourceRange {
             aspect_mask: vk::ImageAspectFlags::COLOR,
             base_mip_level: 0,
@@ -201,7 +207,7 @@ impl Surface {
                 format,
                 present_semaphore: self.present_semaphore,
                 acquire_semaphore,
-                target_size,
+                size,
             });
         }
     }
