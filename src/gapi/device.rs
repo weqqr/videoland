@@ -6,7 +6,7 @@ use ash::vk::{self, DebugUtilsMessageSeverityFlagsEXT};
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 
 use crate::gapi::command::CommandEncoder;
-use crate::gapi::pipeline::{ShaderModule, Pipeline, PipelineDesc};
+use crate::gapi::pipeline::{Pipeline, PipelineDesc, ShaderModule};
 use crate::gapi::surface::{Surface, SwapchainFrame};
 use crate::resources::shader::Shader;
 
@@ -47,7 +47,10 @@ impl Instance {
             extensions
                 .extend_from_slice(ash_window::enumerate_required_extensions(display_handle)?);
 
-            let application_info = vk::ApplicationInfo::builder().api_version(vk::API_VERSION_1_3);
+            let application_info = vk::ApplicationInfo::builder()
+                .api_version(vk::API_VERSION_1_3)
+                .engine_name(CStr::from_bytes_with_nul(b"videoland\0").unwrap())
+                .engine_version(1);
             let create_info = vk::InstanceCreateInfo::builder()
                 .enabled_extension_names(&extensions)
                 .enabled_layer_names(&layers)

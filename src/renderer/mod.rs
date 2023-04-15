@@ -38,6 +38,7 @@ impl Renderer {
         });
 
         let shader_id = ResourceId::new("/dsots/shaders/test.hlsl");
+
         let vertex_shader = resources.load_shader(shader_id.clone(), ShaderStage::Vertex)?;
         let fragment_shader = resources.load_shader(shader_id, ShaderStage::Fragment)?;
 

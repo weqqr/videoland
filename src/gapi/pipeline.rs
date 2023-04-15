@@ -37,14 +37,45 @@ impl Pipeline {
         let fragment_shader_stage_create_info = vk::PipelineShaderStageCreateInfo::builder()
             .stage(vk::ShaderStageFlags::FRAGMENT)
             .name(CStr::from_bytes_with_nul(b"fs_main\0").unwrap())
-            .module(desc.vertex_shader.shader_module);
+            .module(desc.fragment_shader.shader_module);
 
         let shader_stages = &[
             vertex_shader_stage_create_info.build(),
             fragment_shader_stage_create_info.build(),
         ];
 
-        let vertex_input_state = vk::PipelineVertexInputStateCreateInfo::builder();
+        let vertex_attribute_descriptions = &[
+            vk::VertexInputAttributeDescription::builder()
+                .binding(0)
+                .location(0)
+                .offset(0)
+                .format(vk::Format::R32G32B32_SFLOAT)
+                .build(),
+            vk::VertexInputAttributeDescription::builder()
+                .binding(0)
+                .location(1)
+                .offset(3 * 4)
+                .format(vk::Format::R32G32_SFLOAT)
+                .build(),
+            vk::VertexInputAttributeDescription::builder()
+                .binding(0)
+                .location(2)
+                .offset(3 * 4 + 2 * 4)
+                .format(vk::Format::R32G32B32_SFLOAT)
+                .build(),
+        ];
+
+        let vertex_binding_descriptions = &[
+            vk::VertexInputBindingDescription::builder()
+                .binding(0)
+                .stride(8 * 4)
+                .input_rate(vk::VertexInputRate::VERTEX)
+                .build()
+        ];
+
+        let vertex_input_state = vk::PipelineVertexInputStateCreateInfo::builder()
+            .vertex_attribute_descriptions(vertex_attribute_descriptions)
+            .vertex_binding_descriptions(vertex_binding_descriptions);
 
         let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo::builder()
             .topology(vk::PrimitiveTopology::TRIANGLE_LIST)
