@@ -5,6 +5,7 @@ use ash::extensions::{ext, khr};
 use ash::vk::{self, DebugUtilsMessageSeverityFlagsEXT};
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 
+use crate::gapi::BufferAllocator;
 use crate::gapi::command::CommandEncoder;
 use crate::gapi::pipeline::{Pipeline, PipelineDesc, ShaderModule};
 use crate::gapi::surface::{Surface, SwapchainFrame};
@@ -126,6 +127,53 @@ impl Instance {
                 .context(anyhow!("no suitable device found"))?
         };
 
+        Device::new(self.instance.clone(), phd)
+    }
+
+    pub fn create_surface(
+        &self,
+        device: &Device,
+        display_handle: RawDisplayHandle,
+        window_handle: RawWindowHandle,
+    ) -> Result<Surface> {
+        Surface::new(
+            &self.entry,
+            &self.instance,
+            &device.device,
+            device.queue,
+            display_handle,
+            window_handle,
+        )
+    }
+}
+
+pub struct Device {
+    physical_device: PhysicalDevice,
+    device: ash::Device,
+    khr_dynamic_rendering: khr::DynamicRendering,
+    khr_timeline_semaphore: khr::TimelineSemaphore,
+    graphics_queue_family_index: u32,
+    buffer_allocator: BufferAllocator,
+
+    timeline_semaphore: vk::Semaphore,
+    // present_semaphore: vk::Semaphore,
+    queue: vk::Queue,
+
+    sync: u64,
+}
+
+impl Drop for Device {
+    fn drop(&mut self) {
+        unsafe {
+            self.wait_for_sync();
+            self.device.destroy_semaphore(self.timeline_semaphore, None);
+            self.device.destroy_device(None);
+        }
+    }
+}
+
+impl Device {
+    fn new(instance: ash::Instance, physical_device: PhysicalDevice) -> Result<Self> {
         // FIXME:
         let graphics_queue_family_index = 0;
 
@@ -153,12 +201,12 @@ impl Instance {
             .push_next(&mut khr_timeline_semaphore);
 
         let device = unsafe {
-            self.instance
-                .create_device(phd.device, &create_info, None)?
+            instance
+                .create_device(physical_device.device, &create_info, None)?
         };
 
-        let khr_dynamic_rendering = khr::DynamicRendering::new(&self.instance, &device);
-        let khr_timeline_semaphore = khr::TimelineSemaphore::new(&self.instance, &device);
+        let khr_dynamic_rendering = khr::DynamicRendering::new(&instance, &device);
+        let khr_timeline_semaphore = khr::TimelineSemaphore::new(&instance, &device);
 
         let queue = unsafe { device.get_device_queue(graphics_queue_family_index, 0) };
 
@@ -169,11 +217,15 @@ impl Instance {
             vk::SemaphoreCreateInfo::builder().push_next(&mut semaphore_type_create_info);
         let timeline_semaphore = unsafe { device.create_semaphore(&create_info, None)? };
 
+        let buffer_allocator = BufferAllocator::new(instance, device.clone(), physical_device.device).context("creating buffer allocator")?;
+
         Ok(Device {
+            physical_device,
             device,
             khr_dynamic_rendering,
             khr_timeline_semaphore,
             graphics_queue_family_index,
+            buffer_allocator,
 
             timeline_semaphore,
             queue,
@@ -182,49 +234,13 @@ impl Instance {
         })
     }
 
-    pub fn create_surface(
-        &self,
-        device: &Device,
-        display_handle: RawDisplayHandle,
-        window_handle: RawWindowHandle,
-    ) -> Result<Surface> {
-        Surface::new(
-            &self.entry,
-            &self.instance,
-            &device.device,
-            device.queue,
-            display_handle,
-            window_handle,
-        )
-    }
-}
-
-pub struct Device {
-    device: ash::Device,
-    khr_dynamic_rendering: khr::DynamicRendering,
-    khr_timeline_semaphore: khr::TimelineSemaphore,
-    graphics_queue_family_index: u32,
-
-    timeline_semaphore: vk::Semaphore,
-    // present_semaphore: vk::Semaphore,
-    queue: vk::Queue,
-
-    sync: u64,
-}
-
-impl Drop for Device {
-    fn drop(&mut self) {
-        unsafe {
-            self.wait_for_sync();
-            self.device.destroy_semaphore(self.timeline_semaphore, None);
-            self.device.destroy_device(None);
-        }
-    }
-}
-
-impl Device {
     pub fn create_command_encoder(&self, frames: u32) -> Result<CommandEncoder> {
-        CommandEncoder::new(&self.device, self.khr_dynamic_rendering.clone(), self.graphics_queue_family_index, frames)
+        CommandEncoder::new(
+            &self.device,
+            self.khr_dynamic_rendering.clone(),
+            self.graphics_queue_family_index,
+            frames,
+        )
     }
 
     pub fn create_shader_module(&self, shader: &Shader) -> Result<ShaderModule> {

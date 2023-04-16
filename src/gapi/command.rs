@@ -2,8 +2,8 @@ use anyhow::Result;
 use ash::extensions::khr;
 use ash::vk;
 
-use crate::gapi::ImageView;
 use crate::gapi::surface::SwapchainFrame;
+use crate::gapi::ImageView;
 
 pub struct CommandEncoder {
     device: ash::Device,

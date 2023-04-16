@@ -65,13 +65,11 @@ impl Pipeline {
                 .build(),
         ];
 
-        let vertex_binding_descriptions = &[
-            vk::VertexInputBindingDescription::builder()
-                .binding(0)
-                .stride(8 * 4)
-                .input_rate(vk::VertexInputRate::VERTEX)
-                .build()
-        ];
+        let vertex_binding_descriptions = &[vk::VertexInputBindingDescription::builder()
+            .binding(0)
+            .stride(8 * 4)
+            .input_rate(vk::VertexInputRate::VERTEX)
+            .build()];
 
         let vertex_input_state = vk::PipelineVertexInputStateCreateInfo::builder()
             .vertex_attribute_descriptions(vertex_attribute_descriptions)

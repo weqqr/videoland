@@ -1,7 +1,7 @@
+use crate::gapi::pipeline::PipelineDesc;
 use crate::gapi::*;
-use crate::gapi::pipeline::{Pipeline, PipelineDesc};
-use crate::resources::{Resources, ResourceId};
 use crate::resources::shader::ShaderStage;
+use crate::resources::{ResourceId, Resources, Mesh};
 use anyhow::{Context, Result};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use tracing::instrument;
@@ -67,6 +67,10 @@ impl Renderer {
             width: size.width,
             height: size.height,
         })
+    }
+
+    pub fn add_mesh(&mut self, mesh: &Mesh) {
+
     }
 
     #[instrument(skip(self))]

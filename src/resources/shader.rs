@@ -1,10 +1,9 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use anyhow::{anyhow, Result, Context};
+use anyhow::{anyhow, Context, Result};
 use hassle_rs::{Dxc, DxcCompiler, DxcIncludeHandler, DxcLibrary};
-use tracing::{debug, error};
 
-use crate::resources::{FsDataLoader, ResourceId};
+use crate::resources::FsDataLoader;
 
 fn read_shader_source(loader: &FsDataLoader, path: &str) -> Result<String> {
     let data = loader.load_binary_from_raw_path(path)?;
@@ -18,9 +17,7 @@ struct IncludeHandler<'a> {
 
 impl<'a> IncludeHandler<'a> {
     pub fn new(loader: &'a FsDataLoader) -> Self {
-        Self {
-            loader,
-        }
+        Self { loader }
     }
 }
 
@@ -84,7 +81,12 @@ impl ShaderCompiler {
         }
     }
 
-    pub fn compile_hlsl(&self, loader: &FsDataLoader, path: &str, stage: ShaderStage) -> Result<Shader> {
+    pub fn compile_hlsl(
+        &self,
+        loader: &FsDataLoader,
+        path: &str,
+        stage: ShaderStage,
+    ) -> Result<Shader> {
         let source = read_shader_source(loader, path).context("unable to read shader source")?;
 
         let blob = self
@@ -109,7 +111,7 @@ impl ShaderCompiler {
 
         match result {
             Ok(v) => Ok(Shader {
-                data: v.get_result().unwrap().to_vec()
+                data: v.get_result().unwrap().to_vec(),
             }),
             Err(v) => {
                 let message = self

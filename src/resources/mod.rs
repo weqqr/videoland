@@ -1,9 +1,8 @@
 pub mod shader;
 
-use anyhow::anyhow;
 use std::borrow::Borrow;
 use std::fmt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
@@ -57,10 +56,6 @@ impl Resources {
 
     pub fn load_shader<I: Borrow<ResourceId>>(&self, id: I, stage: ShaderStage) -> Result<Shader> {
         let path = self.loader.resolve_resource_id(id.borrow());
-        println!("{:?}", path);
-        let data = self.load_binary(id).unwrap();
-        println!("{:?}", data);
-
         let shader_compiler = self.shader_compiler.lock().unwrap();
 
         shader_compiler.compile_hlsl(&self.loader, path.to_str().unwrap(), stage)
@@ -74,9 +69,7 @@ pub struct FsDataLoader {
 
 impl FsDataLoader {
     pub fn new<P: Into<PathBuf>>(root: P) -> Self {
-        Self {
-            root: root.into(),
-        }
+        Self { root: root.into() }
     }
 
     fn resolve_resource_id(&self, id: &ResourceId) -> PathBuf {
@@ -93,8 +86,7 @@ impl FsDataLoader {
     }
 
     pub fn load_binary_from_raw_path(&self, path: &str) -> Result<Vec<u8>> {
-        let data =
-            std::fs::read(path).with_context(|| format!("unable to load {}", path))?;
+        let data = std::fs::read(path).with_context(|| format!("unable to load {}", path))?;
 
         Ok(data)
     }
