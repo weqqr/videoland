@@ -1,0 +1,14 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - run: rustc -V
+      - run: cargo -V
+      - run: cargo clippy -V
+      - run: cargo clippy -- --deny warnings
