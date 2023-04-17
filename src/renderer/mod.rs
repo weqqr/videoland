@@ -70,7 +70,7 @@ impl Renderer {
     }
 
     pub fn add_mesh(&mut self, mesh: &Mesh) {
-
+        let buf = self.device.upload_vertex_data_to_gpu(bytemuck::cast_slice(mesh.data()));
     }
 
     #[instrument(skip(self))]

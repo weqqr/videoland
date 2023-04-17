@@ -127,6 +127,10 @@ impl Mesh {
         self.data.push(vertex.texcoord.x);
         self.data.push(vertex.texcoord.y);
     }
+
+    pub fn data(&self) -> &[f32] {
+        &self.data
+    }
 }
 
 pub struct Vertex {

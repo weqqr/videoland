@@ -5,10 +5,10 @@ use ash::extensions::{ext, khr};
 use ash::vk::{self, DebugUtilsMessageSeverityFlagsEXT};
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 
-use crate::gapi::BufferAllocator;
 use crate::gapi::command::CommandEncoder;
 use crate::gapi::pipeline::{Pipeline, PipelineDesc, ShaderModule};
 use crate::gapi::surface::{Surface, SwapchainFrame};
+use crate::gapi::BufferAllocator;
 use crate::resources::shader::Shader;
 
 struct PhysicalDevice {
@@ -200,10 +200,7 @@ impl Device {
             .push_next(&mut khr_dynamic_rendering)
             .push_next(&mut khr_timeline_semaphore);
 
-        let device = unsafe {
-            instance
-                .create_device(physical_device.device, &create_info, None)?
-        };
+        let device = unsafe { instance.create_device(physical_device.device, &create_info, None)? };
 
         let khr_dynamic_rendering = khr::DynamicRendering::new(&instance, &device);
         let khr_timeline_semaphore = khr::TimelineSemaphore::new(&instance, &device);
@@ -217,7 +214,9 @@ impl Device {
             vk::SemaphoreCreateInfo::builder().push_next(&mut semaphore_type_create_info);
         let timeline_semaphore = unsafe { device.create_semaphore(&create_info, None)? };
 
-        let buffer_allocator = BufferAllocator::new(instance, device.clone(), physical_device.device).context("creating buffer allocator")?;
+        let buffer_allocator =
+            BufferAllocator::new(instance, device.clone(), physical_device.device)
+                .context("creating buffer allocator")?;
 
         Ok(Device {
             physical_device,
@@ -232,6 +231,13 @@ impl Device {
 
             sync: 0,
         })
+    }
+
+    pub fn upload_vertex_data_to_gpu(&mut self, data: &[u8]) {
+        let mut buffer = self.buffer_allocator.allocate_buffer(data.len());
+        buffer.copy_from_slice(data);
+
+        self.buffer_allocator.free_buffer(buffer);
     }
 
     pub fn create_command_encoder(&self, frames: u32) -> Result<CommandEncoder> {
