@@ -1,4 +1,4 @@
-use crate::gapi::pipeline::PipelineDesc;
+use crate::gapi::pipeline::{PipelineDesc, Pipeline};
 use crate::gapi::*;
 use crate::resources::shader::ShaderStage;
 use crate::resources::{ResourceId, Resources, Mesh};
@@ -14,6 +14,7 @@ const FRAMES: u32 = 2;
 pub struct Renderer {
     window: Window,
 
+    pipeline: Pipeline,
     encoder: CommandEncoder,
     surface: Surface,
     device: Device,
@@ -58,6 +59,7 @@ impl Renderer {
             device,
             surface,
             encoder,
+            pipeline,
         })
     }
 
@@ -70,7 +72,7 @@ impl Renderer {
     }
 
     pub fn add_mesh(&mut self, mesh: &Mesh) {
-        let buf = self.device.upload_vertex_data_to_gpu(bytemuck::cast_slice(mesh.data()));
+        self.device.upload_vertex_data_to_gpu(bytemuck::cast_slice(mesh.data()));
     }
 
     #[instrument(skip(self))]
