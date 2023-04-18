@@ -8,6 +8,7 @@ pub mod input;
 pub mod level;
 pub mod renderer;
 pub mod resources;
+pub mod script;
 
 pub use uuid;
 pub use glam;
