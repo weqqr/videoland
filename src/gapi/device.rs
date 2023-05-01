@@ -8,7 +8,7 @@ use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 use crate::gapi::command::CommandEncoder;
 use crate::gapi::pipeline::{Pipeline, PipelineDesc, ShaderModule};
 use crate::gapi::surface::{Surface, SwapchainFrame};
-use crate::gapi::BufferAllocator;
+use crate::gapi::{BufferAllocator, BufferLocation};
 use crate::resources::shader::Shader;
 
 struct PhysicalDevice {
@@ -234,10 +234,14 @@ impl Device {
     }
 
     pub fn upload_vertex_data_to_gpu(&mut self, data: &[u8]) {
-        let mut buffer = self.buffer_allocator.allocate_buffer(data.len());
-        buffer.copy_from_slice(data);
+        let mut staging_buffer = self.buffer_allocator.allocate_buffer(data.len(), BufferLocation::Cpu);
+        staging_buffer.copy_from_slice(data);
 
-        self.buffer_allocator.free_buffer(buffer);
+        let mut buffer = self.buffer_allocator.allocate_buffer(data.len(), BufferLocation::Gpu);
+
+        self.wait_for_sync();
+
+        self.buffer_allocator.free_buffer(staging_buffer);
     }
 
     pub fn create_command_encoder(&self, frames: u32) -> Result<CommandEncoder> {
@@ -282,7 +286,6 @@ impl Device {
         let cmd = cmd.finish(frame).unwrap();
 
         let wait_semaphores = &[frame.acquire_semaphore];
-
         self.sync += 1;
         let sync = self.sync;
         let wait_values_all = &[0];

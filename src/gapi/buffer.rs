@@ -1,26 +1,44 @@
 use anyhow::Result;
 use ash::vk;
-use gpu_allocator::{vulkan::*, MemoryLocation};
+use gpu_alloc::{Config, GpuAllocator, MemoryBlock, Request, UsageFlags};
+use gpu_alloc_ash::AshMemoryDevice;
+
+#[derive(Debug, Copy, Clone)]
+pub enum BufferLocation {
+    Gpu,
+    Cpu,
+}
+
+impl BufferLocation {
+    fn to_usage(self) -> UsageFlags {
+        match self {
+            BufferLocation::Gpu => UsageFlags::FAST_DEVICE_ACCESS,
+            BufferLocation::Cpu => UsageFlags::UPLOAD,
+        }
+    }
+}
 
 pub(super) struct BufferAllocator {
     device: ash::Device,
-    allocator: Allocator,
+    allocator: GpuAllocator<vk::DeviceMemory>,
 }
 
 impl BufferAllocator {
-    pub(super) fn new(instance: ash::Instance, device: ash::Device, physical_device: vk::PhysicalDevice) -> Result<Self> {
-        let allocator = Allocator::new(&AllocatorCreateDesc {
-            instance,
-            device: device.clone(),
-            physical_device,
-            debug_settings: Default::default(),
-            buffer_device_address: false,
-        })?;
+    pub(super) fn new(
+        instance: ash::Instance,
+        device: ash::Device,
+        physical_device: vk::PhysicalDevice,
+    ) -> Result<Self> {
+        let properties = unsafe {
+            gpu_alloc_ash::device_properties(&instance, vk::API_VERSION_1_3, physical_device)?
+        };
+
+        let allocator = GpuAllocator::new(Config::i_am_prototyping(), properties);
 
         Ok(Self { device, allocator })
     }
 
-    pub(super) fn allocate_buffer(&mut self, size: usize) -> Buffer {
+    pub(super) fn allocate_buffer(&mut self, size: usize, location: BufferLocation) -> Buffer {
         let create_info = vk::BufferCreateInfo::builder()
             .size(size as u64)
             .usage(vk::BufferUsageFlags::VERTEX_BUFFER);
@@ -28,41 +46,54 @@ impl BufferAllocator {
         let buffer = unsafe { self.device.create_buffer(&create_info, None) }.unwrap();
         let requirements = unsafe { self.device.get_buffer_memory_requirements(buffer) };
 
-        let allocation = self.allocator
-            .allocate(&AllocationCreateDesc {
-                name: "buffer",
-                requirements,
-                location: MemoryLocation::CpuToGpu,
-                linear: true,
-                allocation_scheme: AllocationScheme::GpuAllocatorManaged,
-            })
-            .unwrap();
+        let allocation = unsafe {
+            self.allocator
+                .alloc(
+                    AshMemoryDevice::wrap(&self.device),
+                    Request {
+                        size: requirements.size,
+                        align_mask: requirements.alignment,
+                        usage: location.to_usage(),
+                        memory_types: requirements.memory_type_bits,
+                    },
+                )
+                .unwrap()
+        };
 
         unsafe {
-            self.device.bind_buffer_memory(buffer, allocation.memory(), allocation.offset()).unwrap();
+            self.device
+                .bind_buffer_memory(buffer, *allocation.memory(), allocation.offset())
+                .unwrap();
         }
 
         Buffer {
+            device: self.device.clone(),
             buffer,
             allocation,
         }
     }
 
     pub(super) fn free_buffer(&mut self, buffer: Buffer) {
-        self.allocator.free(buffer.allocation).unwrap();
         unsafe {
+            self.allocator
+                .dealloc(AshMemoryDevice::wrap(&self.device), buffer.allocation);
             self.device.destroy_buffer(buffer.buffer, None);
         }
     }
 }
 
 pub struct Buffer {
+    device: ash::Device,
     buffer: vk::Buffer,
-    allocation: Allocation,
+    allocation: MemoryBlock<vk::DeviceMemory>,
 }
 
 impl Buffer {
     pub fn copy_from_slice(&mut self, slice: &[u8]) {
-        self.allocation.mapped_slice_mut().unwrap().copy_from_slice(slice)
+        unsafe {
+            self.allocation
+                .write_bytes(AshMemoryDevice::wrap(&self.device), 0, slice)
+                .unwrap();
+        }
     }
 }
