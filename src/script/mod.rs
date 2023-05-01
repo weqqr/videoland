@@ -1,5 +1,7 @@
 use anyhow::Result;
-use mlua::Lua;
+use mlua::{Function, Lua, Table};
+
+const API_TABLE_NAME: &str = "videoland";
 
 pub struct ScriptEnv {
     lua: Lua,
@@ -11,10 +13,10 @@ fn init_lua_environment(lua: &Lua) -> Result<()> {
         Ok(())
     })?;
 
-    let videoland = lua.create_table()?;
-    videoland.set("hello", hello_world)?;
+    let api_table = lua.create_table()?;
+    api_table.set("hello", hello_world)?;
 
-    lua.globals().set("videoland", videoland)?;
+    lua.globals().set(API_TABLE_NAME, api_table)?;
 
     Ok(())
 }
@@ -30,5 +32,14 @@ impl ScriptEnv {
 
     pub fn execute(&self, script: &[u8]) -> Result<()> {
         Ok(self.lua.load(script).exec()?)
+    }
+
+    fn api_table(&self) -> Table {
+        self.lua.globals().get::<_, Table>(API_TABLE_NAME).unwrap()
+    }
+
+    pub fn on_event(&self, event_type: &str) {
+        let on_event = self.api_table().get::<_, Function>("on_event").unwrap();
+        on_event.call::<_, ()>((event_type,)).unwrap();
     }
 }
