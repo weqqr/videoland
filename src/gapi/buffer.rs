@@ -29,9 +29,11 @@ impl BufferAllocator {
         device: ash::Device,
         physical_device: vk::PhysicalDevice,
     ) -> Result<Self> {
-        let properties = unsafe {
+        let mut properties = unsafe {
             gpu_alloc_ash::device_properties(&instance, vk::API_VERSION_1_3, physical_device)?
         };
+
+        properties.buffer_device_address = false;
 
         let allocator = GpuAllocator::new(Config::i_am_prototyping(), properties);
 
