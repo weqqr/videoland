@@ -165,6 +165,7 @@ impl Surface {
                 self.device.destroy_semaphore(frame.acquire_semaphore, None);
             }
         }
+
         let images = unsafe {
             self.khr_swapchain
                 .get_swapchain_images(self.swapchain)
@@ -178,6 +179,7 @@ impl Surface {
             base_array_layer: 0,
             layer_count: 1,
         };
+
         for (index, image) in images.into_iter().enumerate() {
             let view_create_info = vk::ImageViewCreateInfo::builder()
                 .image(image)

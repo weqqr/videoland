@@ -8,7 +8,7 @@ use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 use crate::gapi::command::CommandEncoder;
 use crate::gapi::pipeline::{Pipeline, PipelineDesc, ShaderModule};
 use crate::gapi::surface::{Surface, SwapchainFrame};
-use crate::gapi::{BufferAllocator, BufferLocation};
+use crate::gapi::{Buffer, BufferAllocator, BufferLocation};
 use crate::resources::shader::Shader;
 
 struct PhysicalDevice {
@@ -234,14 +234,19 @@ impl Device {
     }
 
     pub fn upload_vertex_data_to_gpu(&mut self, data: &[u8]) {
-        let mut staging_buffer = self.buffer_allocator.allocate_buffer(data.len(), BufferLocation::Cpu);
+        let mut staging_buffer = self
+            .buffer_allocator
+            .allocate_buffer(data.len(), BufferLocation::Cpu);
         staging_buffer.copy_from_slice(data);
 
-        let mut buffer = self.buffer_allocator.allocate_buffer(data.len(), BufferLocation::Gpu);
+        let buffer = self
+            .buffer_allocator
+            .allocate_buffer(data.len(), BufferLocation::Gpu);
 
         self.wait_for_sync();
 
-        self.buffer_allocator.free_buffer(staging_buffer);
+        self.destroy_buffer(staging_buffer);
+        self.destroy_buffer(buffer);
     }
 
     pub fn create_command_encoder(&self, frames: u32) -> Result<CommandEncoder> {
@@ -261,12 +266,30 @@ impl Device {
         Pipeline::new(&self.device, desc)
     }
 
-    pub fn destroy_command_encoder(&self, encoder: &mut CommandEncoder) {
+    pub fn destroy_command_encoder(&self, encoder: &CommandEncoder) {
         unsafe {
             self.device
                 .free_command_buffers(encoder.cmd_pool, &encoder.cmd_bufs);
             self.device.destroy_command_pool(encoder.cmd_pool, None);
         };
+    }
+
+    pub fn destroy_pipeline(&self, pipeline: &Pipeline) {
+        unsafe {
+            self.device.destroy_pipeline(pipeline.pipeline, None);
+            self.device
+                .destroy_pipeline_layout(pipeline.pipeline_layout, None);
+        }
+    }
+
+    pub fn destroy_buffer(&mut self, buffer: Buffer) {
+        self.buffer_allocator.free_buffer(buffer);
+    }
+
+    pub fn destroy_shader_module(&self, shader_module: ShaderModule) {
+        unsafe {
+            self.device.destroy_shader_module(shader_module.shader_module, None);
+        }
     }
 
     pub fn wait_for_sync(&self) {

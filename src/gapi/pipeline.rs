@@ -4,7 +4,7 @@ use anyhow::Result;
 use ash::vk::{self, PushConstantRange};
 
 pub struct ShaderModule {
-    shader_module: vk::ShaderModule,
+    pub(super) shader_module: vk::ShaderModule,
 }
 
 impl ShaderModule {
@@ -17,14 +17,14 @@ impl ShaderModule {
     }
 }
 
-pub struct PipelineDesc {
-    pub vertex_shader: ShaderModule,
-    pub fragment_shader: ShaderModule,
+pub struct PipelineDesc<'a> {
+    pub vertex_shader: &'a ShaderModule,
+    pub fragment_shader: &'a ShaderModule,
 }
 
 pub struct Pipeline {
-    pipeline: vk::Pipeline,
-    pipeline_layout: vk::PipelineLayout,
+    pub(super) pipeline: vk::Pipeline,
+    pub(super) pipeline_layout: vk::PipelineLayout,
 }
 
 impl Pipeline {

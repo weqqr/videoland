@@ -47,9 +47,12 @@ impl Renderer {
         let fragment_shader = device.create_shader_module(&fragment_shader)?;
 
         let pipeline = device.create_pipeline(&PipelineDesc {
-            vertex_shader,
-            fragment_shader,
+            vertex_shader: &vertex_shader,
+            fragment_shader: &fragment_shader,
         })?;
+
+        device.destroy_shader_module(vertex_shader);
+        device.destroy_shader_module(fragment_shader);
 
         let encoder = device.create_command_encoder(FRAMES)?;
 
@@ -99,6 +102,8 @@ impl Renderer {
 impl Drop for Renderer {
     fn drop(&mut self) {
         self.device.wait_for_sync();
-        self.device.destroy_command_encoder(&mut self.encoder);
+
+        self.device.destroy_pipeline(&self.pipeline);
+        self.device.destroy_command_encoder(&self.encoder);
     }
 }
