@@ -40,7 +40,12 @@ impl BufferAllocator {
         Ok(Self { device, allocator })
     }
 
-    pub(super) fn allocate_buffer(&mut self, size: usize, location: BufferLocation, usage: vk::BufferUsageFlags) -> Buffer {
+    pub(super) fn allocate_buffer(
+        &mut self,
+        size: usize,
+        location: BufferLocation,
+        usage: vk::BufferUsageFlags,
+    ) -> Buffer {
         let create_info = vk::BufferCreateInfo::builder()
             .size(size as u64)
             .usage(usage);

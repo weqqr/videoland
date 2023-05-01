@@ -6,11 +6,10 @@ pub struct ScriptEnv {
 }
 
 fn init_lua_environment(lua: &Lua) -> Result<()> {
-    let hello_world = lua
-        .create_function(|_, _: ()| {
-            println!("Hello, world!");
-            Ok(())
-        })?;
+    let hello_world = lua.create_function(|_, _: ()| {
+        println!("Hello, world!");
+        Ok(())
+    })?;
 
     let videoland = lua.create_table()?;
     videoland.set("hello", hello_world)?;

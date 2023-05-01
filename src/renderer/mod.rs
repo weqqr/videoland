@@ -1,7 +1,7 @@
-use crate::gapi::pipeline::{PipelineDesc, Pipeline};
+use crate::gapi::pipeline::{Pipeline, PipelineDesc};
 use crate::gapi::*;
 use crate::resources::shader::ShaderStage;
-use crate::resources::{ResourceId, Resources, Mesh};
+use crate::resources::{Mesh, ResourceId, Resources};
 use anyhow::{Context, Result};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use tracing::instrument;
@@ -25,7 +25,8 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(window: Window, resources: &Resources) -> Result<Self> {
-        let instance = Instance::new(window.raw_display_handle()).context("creating vulkan instance")?;
+        let instance =
+            Instance::new(window.raw_display_handle()).context("creating vulkan instance")?;
         let device = instance.create_device()?;
         let mut surface = instance.create_surface(
             &device,
@@ -80,7 +81,9 @@ impl Renderer {
 
     pub fn add_mesh(&mut self, mesh: &Mesh) {
         let cmd_buffer = self.encoder.begin_immediate().unwrap();
-        let buffer = self.device.upload_vertex_data_to_gpu(&cmd_buffer, bytemuck::cast_slice(mesh.data()));
+        let buffer = self
+            .device
+            .upload_vertex_data_to_gpu(&cmd_buffer, bytemuck::cast_slice(mesh.data()));
         let cmd_buffer = self.encoder.finish_immediate(cmd_buffer).unwrap();
         self.device.submit_immediate(cmd_buffer);
         //
@@ -92,9 +95,19 @@ impl Renderer {
         let frame = self.surface.acquire_next_image();
         self.encoder.begin(frame);
 
-        self.encoder.begin_rendering(frame.view());
+        let size = self.window.inner_size();
 
-        // render buffers
+        self.encoder.begin_rendering(frame.view());
+        self.encoder.set_viewport(size.width, size.height);
+
+        self.encoder.bind_pipeline(&self.pipeline);
+        let data = [0; 256];
+
+        for buffer in &self.buffers {
+            self.encoder.set_push_constants(&self.pipeline, &data);
+            self.encoder.bind_vertex_buffer(buffer);
+            self.encoder.draw(3);
+        }
 
         self.encoder.end_rendering();
 

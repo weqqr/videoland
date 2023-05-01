@@ -2,8 +2,9 @@ use anyhow::Result;
 use ash::extensions::khr;
 use ash::vk;
 
+use crate::gapi::pipeline::Pipeline;
 use crate::gapi::surface::SwapchainFrame;
-use crate::gapi::ImageView;
+use crate::gapi::{Buffer, ImageView};
 
 pub struct CommandEncoder {
     device: ash::Device,
@@ -183,6 +184,72 @@ impl CommandEncoder {
         }
 
         Ok(cmd_buffer)
+    }
+
+    pub fn bind_pipeline(&self, pipeline: &Pipeline) {
+        unsafe {
+            self.device.cmd_bind_pipeline(
+                self.current_command_buffer(),
+                vk::PipelineBindPoint::GRAPHICS,
+                pipeline.pipeline,
+            );
+        }
+    }
+
+    pub fn bind_vertex_buffer(&self, buf: &Buffer) {
+        unsafe {
+            self.device.cmd_bind_vertex_buffers(
+                self.current_command_buffer(),
+                0,
+                &[buf.buffer],
+                &[0],
+            );
+        }
+    }
+
+    pub fn draw(&self, vertex_count: u32) {
+        unsafe {
+            self.device
+                .cmd_draw(self.current_command_buffer(), vertex_count, 1, 0, 0);
+        }
+    }
+
+    pub fn set_push_constants(&self, pipeline: &Pipeline, data: &[u8]) {
+        unsafe {
+            self.device.cmd_push_constants(
+                self.current_command_buffer(),
+                pipeline.pipeline_layout,
+                vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+                0,
+                data,
+            );
+        }
+    }
+
+    pub fn set_viewport(&self, width: u32, height: u32) {
+        unsafe {
+            self.device.cmd_set_viewport(
+                self.current_command_buffer(),
+                0,
+                &[vk::Viewport {
+                    x: 0.0,
+                    y: 0.0,
+                    width: width as f32,
+                    height: height as f32,
+                    min_depth: 0.0,
+                    max_depth: 0.0,
+                }],
+            );
+
+            self.device.cmd_set_scissor(
+                self.current_command_buffer(),
+                0,
+                &[vk::Rect2D {
+                    offset: vk::Offset2D { x: 0, y: 0 },
+                    extent: vk::Extent2D { width, height },
+                }],
+            )
+        }
     }
 }
 
