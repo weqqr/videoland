@@ -87,7 +87,7 @@ impl ShaderCompiler {
         path: &str,
         stage: ShaderStage,
     ) -> Result<Shader> {
-        let source = read_shader_source(loader, path).context("unable to read shader source")?;
+        let source = read_shader_source(loader, path).context("reading shader source")?;
 
         let blob = self
             .library

@@ -19,11 +19,13 @@ pub struct Renderer {
     surface: Surface,
     device: Device,
     instance: Instance,
+
+    buffers: Vec<Buffer>,
 }
 
 impl Renderer {
     pub fn new(window: Window, resources: &Resources) -> Result<Self> {
-        let instance = Instance::new(window.raw_display_handle()).context("create instance")?;
+        let instance = Instance::new(window.raw_display_handle()).context("creating vulkan instance")?;
         let device = instance.create_device()?;
         let mut surface = instance.create_surface(
             &device,
@@ -63,6 +65,8 @@ impl Renderer {
             surface,
             encoder,
             pipeline,
+
+            buffers: Vec::new(),
         })
     }
 
@@ -75,7 +79,12 @@ impl Renderer {
     }
 
     pub fn add_mesh(&mut self, mesh: &Mesh) {
-        self.device.upload_vertex_data_to_gpu(bytemuck::cast_slice(mesh.data()));
+        let cmd_buffer = self.encoder.begin_immediate().unwrap();
+        let buffer = self.device.upload_vertex_data_to_gpu(&cmd_buffer, bytemuck::cast_slice(mesh.data()));
+        let cmd_buffer = self.encoder.finish_immediate(cmd_buffer).unwrap();
+        self.device.submit_immediate(cmd_buffer);
+        //
+        self.buffers.push(buffer);
     }
 
     #[instrument(skip(self))]
@@ -84,6 +93,8 @@ impl Renderer {
         self.encoder.begin(frame);
 
         self.encoder.begin_rendering(frame.view());
+
+        // render buffers
 
         self.encoder.end_rendering();
 
@@ -102,6 +113,10 @@ impl Renderer {
 impl Drop for Renderer {
     fn drop(&mut self) {
         self.device.wait_for_sync();
+
+        for buffer in self.buffers.drain(..) {
+            self.device.destroy_buffer(buffer);
+        }
 
         self.device.destroy_pipeline(&self.pipeline);
         self.device.destroy_command_encoder(&self.encoder);

@@ -8,7 +8,7 @@ use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 use crate::gapi::command::CommandEncoder;
 use crate::gapi::pipeline::{Pipeline, PipelineDesc, ShaderModule};
 use crate::gapi::surface::{Surface, SwapchainFrame};
-use crate::gapi::{Buffer, BufferAllocator, BufferLocation};
+use crate::gapi::{Buffer, BufferAllocator, BufferLocation, CommandBuffer};
 use crate::resources::shader::Shader;
 
 struct PhysicalDevice {
@@ -233,20 +233,42 @@ impl Device {
         })
     }
 
-    pub fn upload_vertex_data_to_gpu(&mut self, data: &[u8]) {
-        let mut staging_buffer = self
-            .buffer_allocator
-            .allocate_buffer(data.len(), BufferLocation::Cpu);
+    pub fn upload_vertex_data_to_gpu(&mut self, cmd_buffer: &CommandBuffer, data: &[u8]) -> Buffer {
+        let mut staging_buffer = self.buffer_allocator.allocate_buffer(
+            data.len(),
+            BufferLocation::Cpu,
+            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::TRANSFER_SRC,
+        );
+
         staging_buffer.copy_from_slice(data);
 
-        let buffer = self
-            .buffer_allocator
-            .allocate_buffer(data.len(), BufferLocation::Gpu);
+        let buffer = self.buffer_allocator.allocate_buffer(
+            data.len(),
+            BufferLocation::Gpu,
+            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::TRANSFER_DST,
+        );
 
         self.wait_for_sync();
 
-        self.destroy_buffer(staging_buffer);
-        self.destroy_buffer(buffer);
+        let copy = vk::BufferCopy {
+            src_offset: 0,
+            dst_offset: 0,
+            size: data.len() as u64,
+        };
+
+        unsafe {
+            self.device.cmd_copy_buffer(
+                cmd_buffer.buffer,
+                staging_buffer.buffer,
+                buffer.buffer,
+                &[copy],
+            );
+        }
+
+        // FIXME: destroy when cmdlist is finished
+        // self.destroy_buffer(staging_buffer);
+
+        buffer
     }
 
     pub fn create_command_encoder(&self, frames: u32) -> Result<CommandEncoder> {
@@ -288,7 +310,8 @@ impl Device {
 
     pub fn destroy_shader_module(&self, shader_module: ShaderModule) {
         unsafe {
-            self.device.destroy_shader_module(shader_module.shader_module, None);
+            self.device
+                .destroy_shader_module(shader_module.shader_module, None);
         }
     }
 
@@ -306,23 +329,53 @@ impl Device {
     }
 
     pub fn finish_frame(&mut self, cmd: &CommandEncoder, frame: &SwapchainFrame) {
-        let cmd = cmd.finish(frame).unwrap();
+        let cmd_buffer = cmd.finish(frame).unwrap();
+
+        self.sync += 1;
 
         let wait_semaphores = &[frame.acquire_semaphore];
-        self.sync += 1;
-        let sync = self.sync;
-        let wait_values_all = &[0];
-        let signal_values_all = &[sync, 0];
+        let signal_semaphores = &[self.timeline_semaphore, frame.present_semaphore];
+
+        let wait_values = &[0];
+        let signal_values = &[self.sync, 0];
 
         let mut timeline_info = vk::TimelineSemaphoreSubmitInfo::builder()
-            .wait_semaphore_values(wait_values_all)
-            .signal_semaphore_values(signal_values_all);
+            .wait_semaphore_values(wait_values)
+            .signal_semaphore_values(signal_values);
 
         let submit_info = vk::SubmitInfo::builder()
             .wait_semaphores(wait_semaphores)
             .wait_dst_stage_mask(&[vk::PipelineStageFlags::ALL_COMMANDS])
-            .signal_semaphores(&[self.timeline_semaphore, frame.present_semaphore])
-            .command_buffers(&[cmd])
+            .signal_semaphores(signal_semaphores)
+            .command_buffers(&[cmd_buffer.buffer])
+            .push_next(&mut timeline_info)
+            .build();
+
+        unsafe {
+            self.device
+                .queue_submit(self.queue, &[submit_info], vk::Fence::null())
+                .unwrap();
+        }
+    }
+
+    pub fn submit_immediate(&mut self, cmd_buffer: CommandBuffer) {
+        self.sync += 1;
+
+        let wait_semaphores = &[];
+        let signal_semaphores = &[self.timeline_semaphore];
+
+        let wait_values = &[0];
+        let signal_values = &[self.sync];
+
+        let mut timeline_info = vk::TimelineSemaphoreSubmitInfo::builder()
+            .wait_semaphore_values(wait_values)
+            .signal_semaphore_values(signal_values);
+
+        let submit_info = vk::SubmitInfo::builder()
+            .wait_semaphores(wait_semaphores)
+            .wait_dst_stage_mask(&[])
+            .signal_semaphores(signal_semaphores)
+            .command_buffers(&[cmd_buffer.buffer])
             .push_next(&mut timeline_info)
             .build();
 

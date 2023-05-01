@@ -40,10 +40,10 @@ impl BufferAllocator {
         Ok(Self { device, allocator })
     }
 
-    pub(super) fn allocate_buffer(&mut self, size: usize, location: BufferLocation) -> Buffer {
+    pub(super) fn allocate_buffer(&mut self, size: usize, location: BufferLocation, usage: vk::BufferUsageFlags) -> Buffer {
         let create_info = vk::BufferCreateInfo::builder()
             .size(size as u64)
-            .usage(vk::BufferUsageFlags::VERTEX_BUFFER);
+            .usage(usage);
 
         let buffer = unsafe { self.device.create_buffer(&create_info, None) }.unwrap();
         let requirements = unsafe { self.device.get_buffer_memory_requirements(buffer) };
@@ -86,7 +86,7 @@ impl BufferAllocator {
 
 pub struct Buffer {
     device: ash::Device,
-    buffer: vk::Buffer,
+    pub(super) buffer: vk::Buffer,
     allocation: MemoryBlock<vk::DeviceMemory>,
 }
 

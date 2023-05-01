@@ -122,7 +122,7 @@ impl CommandEncoder {
         }
     }
 
-    pub fn finish(&self, frame: &SwapchainFrame) -> Result<vk::CommandBuffer> {
+    pub fn finish(&self, frame: &SwapchainFrame) -> Result<CommandBuffer> {
         unsafe {
             let barrier = vk::ImageMemoryBarrier::builder()
                 .old_layout(vk::ImageLayout::GENERAL)
@@ -151,12 +151,41 @@ impl CommandEncoder {
                 .end_command_buffer(self.current_command_buffer())?;
         }
 
-        Ok(self.current_command_buffer())
+        Ok(CommandBuffer {
+            buffer: self.current_command_buffer(),
+        })
+    }
+
+    pub fn begin_immediate(&mut self) -> Result<CommandBuffer> {
+        let allocate_info = vk::CommandBufferAllocateInfo::builder()
+            .command_buffer_count(1)
+            .command_pool(self.cmd_pool)
+            .level(vk::CommandBufferLevel::PRIMARY);
+
+        let cmd_buffer = unsafe { self.device.allocate_command_buffers(&allocate_info)?[0] };
+
+        let vk_info = vk::CommandBufferBeginInfo::builder()
+            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT)
+            .build();
+
+        unsafe {
+            self.device
+                .begin_command_buffer(cmd_buffer, &vk_info)
+                .unwrap();
+        }
+
+        Ok(CommandBuffer { buffer: cmd_buffer })
+    }
+
+    pub fn finish_immediate(&mut self, cmd_buffer: CommandBuffer) -> Result<CommandBuffer> {
+        unsafe {
+            self.device.end_command_buffer(cmd_buffer.buffer)?;
+        }
+
+        Ok(cmd_buffer)
     }
 }
 
 pub struct CommandBuffer {
-    buf: vk::CommandBuffer,
+    pub(super) buffer: vk::CommandBuffer,
 }
-
-impl CommandBuffer {}
