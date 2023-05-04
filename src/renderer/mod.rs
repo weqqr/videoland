@@ -1,12 +1,15 @@
+pub mod camera;
+
 use crate::gapi::pipeline::{Pipeline, PipelineDesc};
 use crate::gapi::*;
 use crate::resources::shader::ShaderStage;
 use crate::resources::{Mesh, ResourceId, Resources};
 use anyhow::{Context, Result};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-use tracing::instrument;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
+
+pub use crate::renderer::camera::Camera;
 
 // FIXME: this value should be determined automatically by gapi
 const FRAMES: u32 = 2;
@@ -90,8 +93,7 @@ impl Renderer {
         self.buffers.push(buffer);
     }
 
-    #[instrument(skip(self))]
-    pub fn render(&mut self) {
+    pub fn render<C: Camera>(&mut self, _camera: C) {
         let frame = self.surface.acquire_next_image();
         self.encoder.begin(frame);
 
