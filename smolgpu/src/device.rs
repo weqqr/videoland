@@ -5,11 +5,10 @@ use ash::extensions::{ext, khr};
 use ash::vk::{self, DebugUtilsMessageSeverityFlagsEXT};
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 
-use crate::gapi::command::CommandEncoder;
-use crate::gapi::pipeline::{Pipeline, PipelineDesc, ShaderModule};
-use crate::gapi::surface::{Surface, SwapchainFrame};
-use crate::gapi::{Buffer, BufferAllocator, BufferLocation, CommandBuffer};
-use crate::resources::shader::Shader;
+use crate::command::CommandEncoder;
+use crate::pipeline::{Pipeline, PipelineDesc, ShaderModule};
+use crate::surface::{Surface, SwapchainFrame};
+use crate::{Buffer, BufferAllocator, BufferLocation, CommandBuffer};
 
 struct PhysicalDevice {
     name: String,
@@ -280,8 +279,8 @@ impl Device {
         )
     }
 
-    pub fn create_shader_module(&self, shader: &Shader) -> Result<ShaderModule> {
-        ShaderModule::new(&self.device, shader.data())
+    pub fn create_shader_module(&self, shader: &[u32]) -> Result<ShaderModule> {
+        ShaderModule::new(&self.device, shader)
     }
 
     pub fn create_pipeline(&self, desc: &PipelineDesc) -> Result<Pipeline> {

@@ -3,7 +3,7 @@ use ash::extensions::khr;
 use ash::vk;
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
 
-use crate::gapi::ImageView;
+use crate::image::ImageView;
 
 pub struct SwapchainFrame {
     khr_swapchain: khr::Swapchain,

@@ -1,17 +1,16 @@
 pub mod camera;
 
-use crate::gapi::pipeline::{Pipeline, PipelineDesc};
-use crate::gapi::*;
 use crate::resources::shader::ShaderStage;
 use crate::resources::{Mesh, ResourceId, Resources};
 use anyhow::{Context, Result};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use smolgpu::pipeline::{Pipeline, PipelineDesc};
+use smolgpu::{Buffer, CommandEncoder, Device, Instance, Surface, SurfaceConfiguration};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
 pub use crate::renderer::camera::Camera;
 
-// FIXME: this value should be determined automatically by gapi
 const FRAMES: u32 = 2;
 
 pub struct Renderer {
@@ -49,8 +48,8 @@ impl Renderer {
         let vertex_shader = resources.load_shader(shader_id.clone(), ShaderStage::Vertex)?;
         let fragment_shader = resources.load_shader(shader_id, ShaderStage::Fragment)?;
 
-        let vertex_shader = device.create_shader_module(&vertex_shader)?;
-        let fragment_shader = device.create_shader_module(&fragment_shader)?;
+        let vertex_shader = device.create_shader_module(vertex_shader.data())?;
+        let fragment_shader = device.create_shader_module(fragment_shader.data())?;
 
         let pipeline = device.create_pipeline(&PipelineDesc {
             vertex_shader: &vertex_shader,

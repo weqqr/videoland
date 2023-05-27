@@ -2,7 +2,6 @@
 #![allow(clippy::new_without_default)]
 
 pub mod automata;
-mod gapi;
 pub mod import;
 pub mod input;
 pub mod level;
