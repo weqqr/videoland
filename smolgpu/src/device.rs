@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::ffi::CStr;
 
 use anyhow::{anyhow, Context, Result};
@@ -158,13 +159,17 @@ pub struct Device {
     // present_semaphore: vk::Semaphore,
     queue: vk::Queue,
 
+    frame_index: u64,
     sync: u64,
+
+    buffer_gc_queue: Vec<(u64, Buffer)>,
 }
 
 impl Drop for Device {
     fn drop(&mut self) {
         unsafe {
             self.wait_for_sync();
+            self.gc(0);
             self.device.destroy_semaphore(self.timeline_semaphore, None);
             self.device.destroy_device(None);
         }
@@ -228,7 +233,10 @@ impl Device {
             timeline_semaphore,
             queue,
 
+            frame_index: 0,
             sync: 0,
+
+            buffer_gc_queue: Vec::new(),
         })
     }
 
@@ -264,8 +272,7 @@ impl Device {
             );
         }
 
-        // FIXME: destroy when cmdlist is finished
-        // self.destroy_buffer(staging_buffer);
+        self.buffer_gc_queue.push((self.frame_index, staging_buffer));
 
         buffer
     }
@@ -355,6 +362,8 @@ impl Device {
                 .queue_submit(self.queue, &[submit_info], vk::Fence::null())
                 .unwrap();
         }
+
+        self.frame_index += 1;
     }
 
     pub fn submit_immediate(&mut self, cmd_buffer: CommandBuffer) {
@@ -382,6 +391,16 @@ impl Device {
             self.device
                 .queue_submit(self.queue, &[submit_info], vk::Fence::null())
                 .unwrap();
+        }
+    }
+
+    fn gc(&mut self, frame_diff: u64) {
+        let (to_destroy, remaining): (Vec<_>, Vec<_>) = self.buffer_gc_queue.drain(..)
+            .partition(|(frame_index, _)| self.frame_index.saturating_sub(*frame_index) >= frame_diff);
+
+        self.buffer_gc_queue = remaining;
+        for (_, buffer) in to_destroy {
+            self.destroy_buffer(buffer);
         }
     }
 }

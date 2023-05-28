@@ -5,5 +5,18 @@
 -- completion in IDEs.
 
 videoland = {}
+videoland.lm = {}
 
 function videoland.hello() end
+
+---@class Level
+Level = {}
+
+---@return Level
+function videoland.lm.new_level() end
+
+---@param level Level
+function videoland.lm.set_root(level) end
+
+---@param level Level
+function videoland.lm.unload(level) end

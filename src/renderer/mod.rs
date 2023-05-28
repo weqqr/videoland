@@ -4,8 +4,9 @@ use crate::resources::shader::ShaderStage;
 use crate::resources::{Mesh, ResourceId, Resources};
 use anyhow::{Context, Result};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-use smolgpu::pipeline::{Pipeline, PipelineDesc};
-use smolgpu::{Buffer, CommandEncoder, Device, Instance, Surface, SurfaceConfiguration};
+use smolgpu::{
+    Buffer, CommandEncoder, Device, Instance, Pipeline, PipelineDesc, Surface, SurfaceConfiguration,
+};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
