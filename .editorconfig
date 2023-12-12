@@ -1,0 +1,8 @@
+# Rust code uses rustfmt defaults
+
+[*.lua]
+# see https://github.com/CppCXY/EmmyLuaCodeStyle/blob/master/lua.template.editorconfig
+indent_style = space
+indent_size = 4
+quote_style = double
+

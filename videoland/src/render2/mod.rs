@@ -1,0 +1,300 @@
+#![allow(dead_code)]
+#![allow(clippy::new_without_default)]
+
+use ahash::AHashMap;
+use glam::{Mat4, Quat, Vec3};
+use hecs::World;
+use uuid::Uuid;
+use winit::window::Window;
+
+use crate::camera::Camera;
+use crate::domain::{Name, Parent, RenderableMesh, Transform};
+use crate::geometry::{Mesh, Model, Vertex};
+
+pub struct Shader {
+    data: Vec<u8>,
+}
+
+impl Shader {
+    #[cfg(feature = "vk")]
+    pub fn from_spirv_unchecked(data: Vec<u8>) -> Self {
+        assert!(data.len() % 4 == 0, "spirv has invalid size");
+
+        Self { data }
+    }
+
+    pub fn data(&self) -> &[u32] {
+        bytemuck::cast_slice(&self.data)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Extent2D {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl From<Extent2D> for ra::Extent2D {
+    fn from(extent: Extent2D) -> ra::Extent2D {
+        ra::Extent2D {
+            width: extent.width,
+            height: extent.height,
+        }
+    }
+}
+
+impl Extent2D {
+    fn aspect_ratio(&self) -> f32 {
+        self.width as f32 / self.height as f32
+    }
+}
+
+#[derive(Clone)]
+pub struct MaterialDesc<'a> {
+    pub vertex_shader: &'a Shader,
+    pub fragment_shader: &'a Shader,
+}
+
+struct GpuMaterial {
+    pipeline: ra::Pipeline,
+}
+
+struct GpuMesh {
+    vertex_count: u32,
+    buffer: ra::Buffer,
+}
+
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr(C)]
+struct PushConstants {
+    view_projection: Mat4,
+    transform: Mat4,
+}
+
+pub struct Renderer {
+    device: ra::Device2,
+
+    materials: AHashMap<Uuid, GpuMaterial>,
+    meshes: AHashMap<Uuid, GpuMesh>,
+
+    depth_desc: ra::TextureDesc,
+    depth: ra::Texture,
+    depth_view: ra::TextureView,
+    depth_layout: ra::TextureLayout,
+}
+
+impl Drop for Renderer {
+    fn drop(&mut self) {
+        for (_, mesh) in self.meshes.drain() {
+            self.device.destroy_buffer(mesh.buffer);
+        }
+
+        for (_, material) in self.materials.drain() {
+            self.device.destroy_pipeline(material.pipeline);
+        }
+
+        self.device.destroy_texture_view(&mut self.depth_view);
+        self.device.destroy_texture(&mut self.depth);
+    }
+}
+
+impl Renderer {
+    pub fn new(window: &Window) -> Self {
+        let device = ra::Device2::new(window).unwrap();
+
+        let size = window.inner_size();
+        let depth_desc = ra::TextureDesc {
+            extent: ra::Extent3D {
+                width: size.width,
+                height: size.height,
+                depth: 1,
+            },
+        };
+
+        let depth = device.create_texture(&depth_desc).unwrap();
+        let depth_view = device
+            .create_texture_view(
+                &depth,
+                &ra::TextureViewDesc {
+                    extent: depth_desc.extent,
+                },
+            )
+            .unwrap();
+
+        Self {
+            device,
+
+            materials: AHashMap::new(),
+            meshes: AHashMap::new(),
+
+            depth_desc,
+            depth,
+            depth_view,
+            depth_layout: ra::TextureLayout::Undefined,
+        }
+    }
+
+    pub fn upload_material(&mut self, id: Uuid, desc: &MaterialDesc) {
+        let vs = self
+            .device
+            .create_shader_module(desc.vertex_shader.data())
+            .unwrap();
+        let fs = self
+            .device
+            .create_shader_module(desc.fragment_shader.data())
+            .unwrap();
+
+        let pipeline = self
+            .device
+            .create_pipeline(&ra::PipelineDesc {
+                vertex: &vs,
+                fragment: &fs,
+                vertex_layout: Vertex::layout(),
+            })
+            .unwrap();
+
+        self.materials.insert(id, GpuMaterial { pipeline });
+
+        self.device.destroy_shader_module(vs);
+        self.device.destroy_shader_module(fs);
+    }
+
+    pub fn upload_meshes(&mut self, world: &mut World) {
+        let mut entities_with_models = Vec::new();
+
+        for (e, _) in world.query::<&Model>().iter() {
+            entities_with_models.push(e);
+        }
+
+        for entity in entities_with_models {
+            let model = world.remove_one::<Model>(entity).unwrap();
+            for mesh in model.meshes() {
+                let renderable_mesh = self.upload_mesh(mesh);
+
+                world.spawn((
+                    Parent {
+                        entity,
+                        relative_transform: Transform {
+                            position: Vec3::ZERO,
+                            rotation: Quat::IDENTITY,
+                        },
+                    },
+                    Transform {
+                        position: Vec3::ZERO,
+                        rotation: Quat::IDENTITY,
+                    },
+                    renderable_mesh,
+                    Name(mesh.name.clone()),
+                ));
+            }
+        }
+    }
+
+    fn upload_mesh(&mut self, mesh: &Mesh) -> RenderableMesh {
+        let renderable_mesh_id = Uuid::new_v4();
+
+        let mesh_data_size = std::mem::size_of_val(mesh.data()) as u64;
+
+        let staging = self
+            .device
+            .create_buffer(ra::BufferAllocation {
+                usage: ra::BufferUsage::VERTEX,
+                location: ra::BufferLocation::Cpu,
+                size: mesh_data_size,
+            })
+            .unwrap();
+
+        staging.write_data(0, bytemuck::cast_slice(mesh.data()));
+
+        // let gpu_buffer = self.device.create_buffer(ra::BufferAllocation {
+        //     usage: ra::BufferUsage::VERTEX,
+        //     location: ra::BufferLocation::Gpu,
+        //     size: mesh_data_size,
+        // });
+
+        self.meshes.insert(
+            renderable_mesh_id,
+            GpuMesh {
+                vertex_count: mesh.vertex_count(),
+                buffer: staging,
+            },
+        );
+
+        RenderableMesh(renderable_mesh_id)
+    }
+
+    pub fn resize(&mut self, size: Extent2D) {
+        self.device.resize_swapchain(size).unwrap();
+
+        self.depth_desc.extent.width = size.width;
+        self.depth_desc.extent.height = size.height;
+
+        let mut depth = self.device.create_texture(&self.depth_desc).unwrap();
+        let mut depth_view = self
+            .device
+            .create_texture_view(
+                &depth,
+                &ra::TextureViewDesc {
+                    extent: self.depth_desc.extent,
+                },
+            )
+            .unwrap();
+
+        std::mem::swap(&mut self.depth, &mut depth);
+        std::mem::swap(&mut self.depth_view, &mut depth_view);
+        self.depth_layout = ra::TextureLayout::Undefined;
+
+        self.device.destroy_texture_view(&mut depth_view);
+        self.device.destroy_texture(&mut depth);
+    }
+
+    pub fn render(
+        &mut self,
+        world: &World,
+        viewport_extent: Extent2D,
+        camera: &Camera,
+        material: Uuid,
+    ) {
+        let frame = self.device.acquire_next_image();
+        let frame_image = frame.image_view();
+
+        let command_buffer = self.device.begin_command_buffer(&frame);
+
+        command_buffer.texture_barrier(
+            &self.depth,
+            self.depth_layout,
+            ra::TextureLayout::DepthStencil,
+        );
+        self.depth_layout = ra::TextureLayout::DepthStencil;
+
+        command_buffer.begin_rendering(ra::RenderPassDesc {
+            color_attachment: &frame_image,
+            depth_attachment: &self.depth_view,
+            render_area: viewport_extent.into(),
+        });
+
+        command_buffer.set_viewport(viewport_extent);
+
+        let material = self.materials.get(&material).unwrap();
+
+        command_buffer.bind_pipeline(&material.pipeline);
+
+        for (e, (transform, mesh)) in world.query::<(&Transform, &RenderableMesh)>().iter() {
+            let pc = PushConstants {
+                view_projection: camera.view_projection(viewport_extent.aspect_ratio()),
+                transform: transform.matrix(),
+            };
+
+            let gpu_mesh = self.meshes.get(&mesh.0).unwrap();
+
+            command_buffer.set_push_constants(&material.pipeline, 0, bytemuck::bytes_of(&pc));
+
+            command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
+            command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
+        }
+
+        command_buffer.end_rendering();
+
+        self.device.submit_frame(command_buffer, &frame).unwrap();
+    }
+}
