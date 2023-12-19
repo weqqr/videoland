@@ -1,6 +1,6 @@
 [workspace]
 [package]
-name = "videogame"
+name = "dsots"
 version = "0.1.0"
 edition = "2021"
 

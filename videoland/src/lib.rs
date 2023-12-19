@@ -7,7 +7,6 @@ mod automata;
 mod camera;
 mod control;
 mod domain;
-mod editor;
 mod geometry;
 mod input;
 mod loader;
@@ -36,7 +35,6 @@ use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
 use crate::camera::Camera;
 use crate::domain::{Player, RigidBody, Transform};
-use crate::editor::{Editor, EditorData};
 use crate::input::InputState;
 use crate::loader::Loader;
 use crate::render2::{Extent2D, MaterialDesc, Renderer};
@@ -54,7 +52,6 @@ struct AppState {
     ui: Ui,
     input_state: InputState,
     timings: Timings,
-    editor: Editor,
     world: World,
     thread_pool: Arc<ThreadPool>,
     player: Entity,
@@ -112,7 +109,6 @@ impl AppState {
 
         let input_state = InputState::new();
         let timings = Timings::new();
-        let editor = Editor::new();
 
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
@@ -128,7 +124,6 @@ impl AppState {
             ui,
             input_state,
             timings,
-            editor,
             world,
             thread_pool,
             player,
@@ -215,18 +210,6 @@ impl AppState {
         stats
     }
 
-    fn show_editor(&mut self) {
-        let stats = self.prepare_stats();
-
-        self.editor.show(
-            &self.ui,
-            EditorData {
-                renderer: &mut self.renderer,
-                stats: &stats,
-            },
-        );
-    }
-
     fn update(&mut self) -> EventLoopIterationDecision {
         let rendered_ui = self.ui.finish_frame(&self.window);
         self.ui.begin_frame(&self.window);
@@ -241,7 +224,6 @@ impl AppState {
             &self.input_state,
             &self.timings,
         );
-        self.show_editor();
         self.loader.poll(&mut self.world);
         self.renderer.upload_meshes(&mut self.world);
         self.render(rendered_ui);
@@ -278,7 +260,6 @@ pub fn run() {
                 Event::DeviceEvent { event, .. } => state.handle_device_event(event),
                 Event::AboutToWait => state.update(),
                 Event::LoopExiting => {
-                    state.editor.save_layout();
                     state.settings.save();
                     EventLoopIterationDecision::Break
                 }
