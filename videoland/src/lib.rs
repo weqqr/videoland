@@ -34,7 +34,7 @@ use winit::keyboard::{Key, NamedKey};
 use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
 use crate::camera::Camera;
-use crate::domain::{Player, RigidBody, Transform};
+use crate::domain::{Player, Transform};
 use crate::input::InputState;
 use crate::loader::Loader;
 use crate::render2::{Extent2D, MaterialDesc, Renderer};
