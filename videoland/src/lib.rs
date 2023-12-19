@@ -46,6 +46,10 @@ use crate::shader_compiler::ShaderStage;
 use crate::timing::Timings;
 use crate::ui::{RenderedUi, Ui};
 
+pub trait App {
+    fn run(&mut self);
+}
+
 struct AppState {
     settings: Settings,
     loader: Loader,
@@ -57,31 +61,6 @@ struct AppState {
     timings: Timings,
     world: World,
     thread_pool: Arc<ThreadPool>,
-    player: Entity,
-}
-
-fn add_stuff_to_world(world: &mut World, loader: &Loader) -> Entity {
-    // let sponza = world.spawn((Transform {
-    //     position: Vec3::ZERO,
-    //     rotation: Quat::IDENTITY,
-    // },));
-    // loader.load_and_attach_model_sync(sponza, "models/sponza.obj");
-
-    let monkey = world.spawn((
-        Transform {
-            position: Vec3::Y * 100.0,
-            rotation: Quat::IDENTITY,
-        },
-    ));
-    loader.load_and_attach_model_sync(monkey, "models/monkey.obj");
-
-    let flatplane = world.spawn((Transform {
-        position: Vec3::ZERO,
-        rotation: Quat::IDENTITY,
-    },));
-    loader.load_and_attach_model_sync(flatplane, "models/flatplane.obj");
-
-    world.spawn((Player, Camera::new()))
 }
 
 impl AppState {
@@ -116,7 +95,7 @@ impl AppState {
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
 
-        let player = add_stuff_to_world(&mut world, &loader);
+        // let player = add_stuff_to_world(&mut world, &loader);
 
         Self {
             settings,
@@ -129,7 +108,6 @@ impl AppState {
             timings,
             world,
             thread_pool,
-            player,
         }
     }
 
@@ -139,20 +117,6 @@ impl AppState {
         }
 
         EventLoopIterationDecision::Continue
-    }
-
-    fn handle_mouse_move(&mut self, delta_x: f64, delta_y: f64) {
-        const SENSITIVITY: f64 = 0.1;
-
-        let delta_pitch = (delta_y * SENSITIVITY) as f32;
-        let delta_yaw = (delta_x * SENSITIVITY) as f32;
-
-        let (_, camera) = self
-            .world
-            .query_one_mut::<(&Player, &mut Camera)>(self.player)
-            .unwrap();
-
-        camera.rotate(delta_pitch, delta_yaw);
     }
 
     fn handle_window_event(&mut self, event: WindowEvent) -> EventLoopIterationDecision {
@@ -174,12 +138,7 @@ impl AppState {
     }
 
     fn handle_device_event(&mut self, event: DeviceEvent) -> EventLoopIterationDecision {
-        match event {
-            DeviceEvent::MouseMotion { delta } => {
-                self.handle_mouse_move(delta.0, delta.1);
-            }
-            _ => {}
-        }
+        self.input_state.submit_device_input(&event);
 
         EventLoopIterationDecision::Continue
     }
@@ -192,8 +151,7 @@ impl AppState {
             height: window_size.height,
         };
 
-        let mut player_components = self.world.query_one::<&Camera>(self.player).unwrap();
-        let camera = player_components.get().unwrap();
+        let camera = &Camera::new();
 
         self.renderer
             .render(&self.world, extent, camera, self.material);
@@ -220,7 +178,6 @@ impl AppState {
         self.timings.advance_frame();
 
         let dt = self.timings.dtime_s() as f32;
-
 
         self.loader.poll(&mut self.world);
         self.renderer.upload_meshes(&mut self.world);
