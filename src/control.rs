@@ -1,10 +1,9 @@
-use glam::Vec3;
-use hecs::{Entity, World};
-use winit::keyboard::KeyCode;
-
-use crate::camera::Camera;
-use crate::input::InputState;
-use crate::timing::Timings;
+use videoland::camera::Camera;
+use videoland::ecs::{Entity, World};
+use videoland::input::InputState;
+use videoland::math::Vec3;
+use videoland::timing::Timings;
+use videoland::winit::keyboard::KeyCode;
 
 pub enum Action {
     MoveForward,

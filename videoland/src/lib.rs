@@ -3,21 +3,24 @@
 #![allow(clippy::single_match)]
 #![allow(clippy::new_without_default)]
 
-mod automata;
-mod camera;
-mod control;
-mod domain;
-mod geometry;
-mod input;
-mod loader;
-mod render2;
-mod settings;
-mod shader_compiler;
-mod timing;
-mod ui;
+pub mod automata;
+pub mod camera;
+pub mod domain;
+pub mod geometry;
+pub mod input;
+pub mod loader;
+pub mod render2;
+pub mod settings;
+pub mod shader_compiler;
+pub mod timing;
+pub mod ui;
 
 // User-facing project name
 const PROJECT_NAME: &str = "Walkhack";
+
+pub use glam as math;
+pub use hecs as ecs;
+pub use winit;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -218,12 +221,7 @@ impl AppState {
 
         let dt = self.timings.dtime_s() as f32;
 
-        control::move_player(
-            &mut self.world,
-            self.player,
-            &self.input_state,
-            &self.timings,
-        );
+
         self.loader.poll(&mut self.world);
         self.renderer.upload_meshes(&mut self.world);
         self.render(rendered_ui);
