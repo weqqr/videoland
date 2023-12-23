@@ -17,6 +17,11 @@ impl Registry {
         }
     }
 
+    pub fn insert<R: 'static>(&mut self, r: R) {
+        let id = TypeId::of::<R>();
+        self.resources.insert(id, Box::new(RefCell::new(r)));
+    }
+
     pub fn res<R: 'static>(&self) -> Ref<R> {
         let id = TypeId::of::<R>();
         let r = self.resources.get(&id).unwrap().borrow();
@@ -71,37 +76,6 @@ pub struct SystemFn<F, FnParams> {
 
     // needed to constrain input types for System impl
     _pd: PhantomData<FnParams>,
-}
-
-impl<F: FnMut(T, U), T: SystemParam + 'static, U: SystemParam + 'static> System
-    for SystemFn<F, (T, U)>
-where
-    for<'a, 'b> &'a mut F: FnMut(T, U) + FnMut(SystemParamItem<'b, T>, SystemParamItem<'b, U>),
-{
-    fn run(&mut self, reg: &Registry) {
-        let a = T::get(reg);
-        let b = U::get(reg);
-
-        fn call_inner<T, U>(mut f: impl FnMut(T, U), t: T, u: U) {
-            f(t, u)
-        }
-
-        call_inner(&mut self.func, a, b)
-    }
-}
-
-impl<F, T, U> IntoSystem<(T, U), SystemFn<Self, (T, U)>> for F
-where
-    T: 'static,
-    U: 'static,
-    F: FnMut(T, U),
-{
-    fn into_system(self) -> SystemFn<Self, (T, U)> {
-        SystemFn {
-            func: self,
-            _pd: PhantomData,
-        }
-    }
 }
 
 // whoever invented this is a genius
@@ -164,3 +138,78 @@ impl Schedule {
         }
     }
 }
+
+macro_rules! impl_system_for_systemfn {
+    ($($ts:ident),*) => {
+        #[allow(non_snake_case)]
+        #[allow(unused_variables)]
+        #[allow(clippy::too_many_arguments)]
+        impl<Func: FnMut($($ts),*), $($ts: SystemParam + 'static),*> System
+            for SystemFn<Func, ($($ts,)*)>
+        where
+            for<'a, 'b> &'a mut Func:
+                FnMut($($ts),*) + FnMut($(SystemParamItem<'b, $ts>),*),
+        {
+            fn run(&mut self, reg: &Registry) {
+                $(
+                    let $ts = $ts::get(reg);
+                )*
+
+                fn call_inner<$($ts),*>(mut f: impl FnMut($($ts),*), $($ts:$ts),*) {
+                    f($($ts),*)
+                }
+
+                call_inner(&mut self.func, $($ts),*)
+            }
+        }
+    };
+}
+
+macro_rules! impl_into_system_for_fn {
+    ($($ts:ident),*) => {
+        impl<Func, $($ts,)*> IntoSystem<($($ts,)*), SystemFn<Self, ($($ts,)*)>> for Func
+        where
+            Func: FnMut($($ts),*),
+            $($ts: 'static,)*
+        {
+            fn into_system(self) -> SystemFn<Self, ($($ts,)*)> {
+                SystemFn {
+                    func: self,
+                    _pd: PhantomData,
+                }
+            }
+        }
+    }
+}
+
+impl_system_for_systemfn!();
+impl_system_for_systemfn!(A);
+impl_system_for_systemfn!(A, B);
+impl_system_for_systemfn!(A, B, C);
+impl_system_for_systemfn!(A, B, C, D);
+impl_system_for_systemfn!(A, B, C, D, E);
+impl_system_for_systemfn!(A, B, C, D, E, F);
+impl_system_for_systemfn!(A, B, C, D, E, F, G);
+impl_system_for_systemfn!(A, B, C, D, E, F, G, H);
+impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I);
+impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J);
+impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J, K);
+impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J, K, L);
+impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J, K, L, M);
+impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
+
+impl_into_system_for_fn!();
+impl_into_system_for_fn!(A);
+impl_into_system_for_fn!(A, B);
+impl_into_system_for_fn!(A, B, C);
+impl_into_system_for_fn!(A, B, C, D);
+impl_into_system_for_fn!(A, B, C, D, E);
+impl_into_system_for_fn!(A, B, C, D, E, F);
+impl_into_system_for_fn!(A, B, C, D, E, F, G);
+impl_into_system_for_fn!(A, B, C, D, E, F, G, H);
+impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I);
+impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J);
+impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J, K);
+impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J, K, L);
+impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J, K, L, M);
+impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);

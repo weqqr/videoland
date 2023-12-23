@@ -26,7 +26,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use uuid::Uuid;
-use videoland_ecs::{Registry, Res, ResMut, Schedule};
+use videoland_ecs::Registry;
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -49,8 +49,6 @@ struct AppState {
     renderer: Renderer,
     material: Uuid,
     ui: Ui,
-    input_state: InputState,
-    timings: Timings,
     reg: Registry,
     thread_pool: Arc<ThreadPool>,
 }
@@ -67,7 +65,7 @@ impl AppState {
 
         ui.begin_frame(&window);
 
-        let reg = Registry::new();
+        let mut reg = Registry::new();
 
         let vertex_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Vertex);
         let fragment_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Fragment);
@@ -81,16 +79,11 @@ impl AppState {
             },
         );
 
-        let input_state = InputState::new();
-        let timings = Timings::new();
+        reg.insert(InputState::new());
+        reg.insert(Timings::new());
 
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
-
-        fn test(a: Res<i32>, b: ResMut<String>) {}
-
-        let mut schedule = Schedule::new();
-        schedule.add_system(test);
 
         Self {
             settings,
@@ -99,8 +92,6 @@ impl AppState {
             renderer,
             material,
             ui,
-            input_state,
-            timings,
             reg,
             thread_pool,
         }
@@ -117,7 +108,7 @@ impl AppState {
     fn handle_window_event(&mut self, event: WindowEvent) -> EventLoopIterationDecision {
         self.ui.on_event(&event);
 
-        self.input_state.submit_window_input(&event);
+        self.reg.res_mut::<InputState>().submit_window_input(&event);
 
         match event {
             WindowEvent::CloseRequested => return EventLoopIterationDecision::Break,
@@ -133,7 +124,7 @@ impl AppState {
     }
 
     fn handle_device_event(&mut self, event: DeviceEvent) -> EventLoopIterationDecision {
-        self.input_state.submit_device_input(&event);
+        self.reg.res_mut::<InputState>().submit_device_input(&event);
 
         EventLoopIterationDecision::Continue
     }
@@ -153,15 +144,14 @@ impl AppState {
     }
 
     fn prepare_stats(&self) -> IndexMap<String, String> {
+        let timings = self.reg.res::<Timings>();
+
         let mut stats = IndexMap::new();
         stats.insert(
             "Frame rate".to_owned(),
-            format!("{:>3}fps", self.timings.fps().round()),
+            format!("{:>3}fps", timings.fps().round()),
         );
-        stats.insert(
-            "ΔTime".to_owned(),
-            format!("{:.2}ms", self.timings.dtime_ms()),
-        );
+        stats.insert("ΔTime".to_owned(), format!("{:.2}ms", timings.dtime_ms()));
 
         stats
     }
@@ -169,15 +159,16 @@ impl AppState {
     fn update(&mut self) -> EventLoopIterationDecision {
         let rendered_ui = self.ui.finish_frame(&self.window);
         self.ui.begin_frame(&self.window);
-
-        self.timings.advance_frame();
-
-        let dt = self.timings.dtime_s() as f32;
+        {
+            let mut timings = self.reg.res_mut::<Timings>();
+            timings.advance_frame();
+            let dt = timings.dtime_s() as f32;
+        }
 
         self.loader.poll(&mut self.reg);
         // self.renderer.upload_meshes(&mut self.world);
         self.render(rendered_ui);
-        self.input_state.reset_mouse_movement();
+        self.reg.res_mut::<InputState>().reset_mouse_movement();
 
         EventLoopIterationDecision::Continue
     }
