@@ -16,7 +16,6 @@ pub mod ui;
 // User-facing project name
 const PROJECT_NAME: &str = "Videoland";
 
-use ecs::SystemFn;
 pub use glam as math;
 pub use videoland_ecs as ecs;
 pub use winit;
@@ -27,7 +26,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use uuid::Uuid;
-use videoland_ecs::{Registry, Res, Schedule};
+use videoland_ecs::{Registry, Res, ResMut, Schedule};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -88,7 +87,7 @@ impl AppState {
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
 
-        fn test(a: Res<i32>, b: Res<String>) {}
+        fn test(a: Res<i32>, b: ResMut<String>) {}
 
         let mut schedule = Schedule::new();
         schedule.add_system(test);

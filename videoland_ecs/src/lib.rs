@@ -62,6 +62,10 @@ pub struct Res<'a, T: 'static> {
     value: Ref<'a, T>,
 }
 
+pub struct ResMut<'a, T: 'static> {
+    value: RefMut<'a, T>,
+}
+
 pub struct SystemFn<F, FnParams> {
     func: F,
 
@@ -69,25 +73,63 @@ pub struct SystemFn<F, FnParams> {
     _pd: PhantomData<FnParams>,
 }
 
-impl<F: FnMut(Res<T>, Res<U>), T: 'static, U: 'static> System for SystemFn<F, (T, U)> {
+impl<F: FnMut(T, U), T: SystemParam + 'static, U: SystemParam + 'static> System
+    for SystemFn<F, (T, U)>
+where
+    for<'a, 'b> &'a mut F: FnMut(T, U) + FnMut(SystemParamItem<'b, T>, SystemParamItem<'b, U>),
+{
     fn run(&mut self, reg: &Registry) {
-        let a = reg.res::<T>();
-        let b = reg.res::<U>();
+        let a = T::get(reg);
+        let b = U::get(reg);
 
-        (self.func)(Res { value: a }, Res { value: b })
+        fn call_inner<T, U>(mut f: impl FnMut(T, U), t: T, u: U) {
+            f(t, u)
+        }
+
+        call_inner(&mut self.func, a, b)
     }
 }
 
-impl<F: , T, U> IntoSystem<(T, U), SystemFn<Self, (T, U)>> for F
+impl<F, T, U> IntoSystem<(T, U), SystemFn<Self, (T, U)>> for F
 where
     T: 'static,
     U: 'static,
-    F: FnMut(Res<T>, Res<U>)
+    F: FnMut(T, U),
 {
     fn into_system(self) -> SystemFn<Self, (T, U)> {
         SystemFn {
             func: self,
             _pd: PhantomData,
+        }
+    }
+}
+
+// whoever invented this is a genius
+// https://promethia-27.github.io/dependency_injection_like_bevy_from_scratch/chapter2/passing_references.html
+pub trait SystemParam {
+    type Item<'w>;
+
+    fn get(reg: &Registry) -> Self::Item<'_>;
+}
+
+type SystemParamItem<'w, T> = <T as SystemParam>::Item<'w>;
+
+impl<'a, T> SystemParam for Res<'a, T> {
+    type Item<'w> = Res<'w, T>;
+
+    fn get(reg: &Registry) -> Self::Item<'_> {
+        Res {
+            value: reg.res::<T>(),
+        }
+    }
+}
+
+impl<'a, T> SystemParam for ResMut<'a, T> {
+    type Item<'w> = ResMut<'w, T>;
+
+    fn get(reg: &Registry) -> Self::Item<'_> {
+        ResMut {
+            value: reg.res_mut::<T>(),
         }
     }
 }
