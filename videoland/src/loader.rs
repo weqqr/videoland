@@ -1,10 +1,9 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use dashmap::DashMap;
-use hecs::{Entity, World};
 use rayon::ThreadPool;
 use uuid::Uuid;
+use videoland_ecs::{Entity, Registry};
 
 use crate::geometry::Model;
 use crate::render2::Shader;
@@ -15,8 +14,7 @@ pub struct Loader {
     thread_pool: Arc<ThreadPool>,
 
     root: PathBuf,
-
-    models_pending_attachment_to_entity: DashMap<Entity, Model, ahash::RandomState>,
+    // models_pending_attachment_to_entity: DashMap<Entity, Model, ahash::RandomState>,
 }
 
 pub struct LoadedAsset {
@@ -32,8 +30,7 @@ impl Loader {
             thread_pool,
 
             root,
-
-            models_pending_attachment_to_entity: DashMap::with_hasher(ahash::RandomState::new()),
+            // models_pending_attachment_to_entity: DashMap::with_hasher(ahash::RandomState::new()),
         }
     }
 
@@ -61,23 +58,23 @@ impl Loader {
         let data = self.load_binary(path);
         let model = Model::from_obj(&data);
 
-        self.models_pending_attachment_to_entity.insert(e, model);
+        // self.models_pending_attachment_to_entity.insert(e, model);
     }
 
-    pub fn poll(&mut self, world: &mut World) {
-        let ready_entities: Vec<_> = self
-            .models_pending_attachment_to_entity
-            .iter()
-            .map(|refm| *refm.pair().0)
-            .collect();
+    pub fn poll(&mut self, world: &mut Registry) {
+        // let ready_entities: Vec<_> = self
+        //     .models_pending_attachment_to_entity
+        //     .iter()
+        //     .map(|refm| *refm.pair().0)
+        //     .collect();
 
-        for id in ready_entities {
-            let (_, model) = self
-                .models_pending_attachment_to_entity
-                .remove(&id)
-                .unwrap();
+        // for id in ready_entities {
+        //     let (_, model) = self
+        //         .models_pending_attachment_to_entity
+        //         .remove(&id)
+        //         .unwrap();
 
-            world.insert_one(id, model).unwrap();
-        }
+        //     world.insert_one(id, model).unwrap();
+        // }
     }
 }

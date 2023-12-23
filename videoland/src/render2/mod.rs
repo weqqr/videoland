@@ -3,12 +3,12 @@
 
 use ahash::AHashMap;
 use glam::{Mat4, Quat, Vec3};
-use hecs::World;
 use uuid::Uuid;
+use videoland_ecs::Registry;
 use winit::window::Window;
 
 use crate::camera::Camera;
-use crate::domain::{Name, Parent, RenderableMesh, Transform};
+use crate::domain::{Name, RenderableMesh, Transform};
 use crate::geometry::{Mesh, Model, Vertex};
 
 pub struct Shader {
@@ -159,7 +159,7 @@ impl Renderer {
         self.device.destroy_shader_module(fs);
     }
 
-    pub fn upload_meshes(&mut self, world: &mut World) {
+    /*pub fn upload_meshes(&mut self, world: &mut World) {
         let mut entities_with_models = Vec::new();
 
         for (e, _) in world.query::<&Model>().iter() {
@@ -221,7 +221,7 @@ impl Renderer {
         );
 
         RenderableMesh(renderable_mesh_id)
-    }
+    }*/
 
     pub fn resize(&mut self, size: Extent2D) {
         self.device.resize_swapchain(size).unwrap();
@@ -250,7 +250,7 @@ impl Renderer {
 
     pub fn render(
         &mut self,
-        world: &World,
+        world: &Registry,
         viewport_extent: Extent2D,
         camera: &Camera,
         material: Uuid,
@@ -279,19 +279,19 @@ impl Renderer {
 
         command_buffer.bind_pipeline(&material.pipeline);
 
-        for (e, (transform, mesh)) in world.query::<(&Transform, &RenderableMesh)>().iter() {
-            let pc = PushConstants {
-                view_projection: camera.view_projection(viewport_extent.aspect_ratio()),
-                transform: transform.matrix(),
-            };
+        // for (e, (transform, mesh)) in world.query::<(&Transform, &RenderableMesh)>().iter() {
+        //     let pc = PushConstants {
+        //         view_projection: camera.view_projection(viewport_extent.aspect_ratio()),
+        //         transform: transform.matrix(),
+        //     };
 
-            let gpu_mesh = self.meshes.get(&mesh.0).unwrap();
+        //     let gpu_mesh = self.meshes.get(&mesh.0).unwrap();
 
-            command_buffer.set_push_constants(&material.pipeline, 0, bytemuck::bytes_of(&pc));
+        //     command_buffer.set_push_constants(&material.pipeline, 0, bytemuck::bytes_of(&pc));
 
-            command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
-            command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
-        }
+        //     command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
+        //     command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
+        // }
 
         command_buffer.end_rendering();
 

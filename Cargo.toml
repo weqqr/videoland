@@ -8,3 +8,11 @@ edition = "2021"
 
 [dependencies]
 videoland = { path = "videoland" }
+
+[workspace.dependencies]
+egui = "0.24.1"
+ahash = "0.8.6"
+
+[workspace.lints.clippy]
+single_match = "allow"
+new_without_default = "allow"

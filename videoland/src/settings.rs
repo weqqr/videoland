@@ -2,8 +2,6 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::PROJECT_NAME;
-
 #[derive(Serialize, Deserialize)]
 pub struct Settings {
     pub test: String,
@@ -36,8 +34,5 @@ impl Settings {
 }
 
 fn user_settings_path() -> PathBuf {
-    dirs::config_local_dir()
-        .unwrap()
-        .join(PROJECT_NAME)
-        .join("videoland.json")
+    PathBuf::from("videoland.json")
 }

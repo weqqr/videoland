@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-#![allow(clippy::single_match)]
-#![allow(clippy::new_without_default)]
 
 pub mod automata;
 pub mod camera;
@@ -16,20 +14,19 @@ pub mod timing;
 pub mod ui;
 
 // User-facing project name
-const PROJECT_NAME: &str = "Walkhack";
+const PROJECT_NAME: &str = "Videoland";
 
 pub use glam as math;
-pub use hecs as ecs;
+pub use videoland_ecs as ecs;
 pub use winit;
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use glam::{Quat, Vec3};
-use hecs::{Entity, World};
 use indexmap::IndexMap;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use uuid::Uuid;
+use videoland_ecs::Registry;
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -37,7 +34,6 @@ use winit::keyboard::{Key, NamedKey};
 use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
 use crate::camera::Camera;
-use crate::domain::{Player, Transform};
 use crate::input::InputState;
 use crate::loader::Loader;
 use crate::render2::{Extent2D, MaterialDesc, Renderer};
@@ -45,10 +41,6 @@ use crate::settings::Settings;
 use crate::shader_compiler::ShaderStage;
 use crate::timing::Timings;
 use crate::ui::{RenderedUi, Ui};
-
-pub trait App {
-    fn run(&mut self);
-}
 
 struct AppState {
     settings: Settings,
@@ -59,7 +51,7 @@ struct AppState {
     ui: Ui,
     input_state: InputState,
     timings: Timings,
-    world: World,
+    world: Registry,
     thread_pool: Arc<ThreadPool>,
 }
 
@@ -75,7 +67,7 @@ impl AppState {
 
         ui.begin_frame(&window);
 
-        let mut world = World::new();
+        let world = Registry::new();
 
         let vertex_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Vertex);
         let fragment_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Fragment);
@@ -94,8 +86,6 @@ impl AppState {
 
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
-
-        // let player = add_stuff_to_world(&mut world, &loader);
 
         Self {
             settings,
@@ -180,7 +170,7 @@ impl AppState {
         let dt = self.timings.dtime_s() as f32;
 
         self.loader.poll(&mut self.world);
-        self.renderer.upload_meshes(&mut self.world);
+        // self.renderer.upload_meshes(&mut self.world);
         self.render(rendered_ui);
         self.input_state.reset_mouse_movement();
 
