@@ -26,7 +26,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use uuid::Uuid;
-use videoland_ecs::Registry;
+use videoland_ecs::{Registry, Res, Schedule};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -51,7 +51,7 @@ struct AppState {
     ui: Ui,
     input_state: InputState,
     timings: Timings,
-    world: Registry,
+    reg: Registry,
     thread_pool: Arc<ThreadPool>,
 }
 
@@ -67,7 +67,7 @@ impl AppState {
 
         ui.begin_frame(&window);
 
-        let world = Registry::new();
+        let reg = Registry::new();
 
         let vertex_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Vertex);
         let fragment_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Fragment);
@@ -87,6 +87,8 @@ impl AppState {
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
 
+        let mut schedule = Schedule::new();
+
         Self {
             settings,
             loader,
@@ -96,7 +98,7 @@ impl AppState {
             ui,
             input_state,
             timings,
-            world,
+            reg,
             thread_pool,
         }
     }
@@ -144,7 +146,7 @@ impl AppState {
         let camera = &Camera::new();
 
         self.renderer
-            .render(&self.world, extent, camera, self.material);
+            .render(&self.reg, extent, camera, self.material);
     }
 
     fn prepare_stats(&self) -> IndexMap<String, String> {
@@ -169,7 +171,7 @@ impl AppState {
 
         let dt = self.timings.dtime_s() as f32;
 
-        self.loader.poll(&mut self.world);
+        self.loader.poll(&mut self.reg);
         // self.renderer.upload_meshes(&mut self.world);
         self.render(rendered_ui);
         self.input_state.reset_mouse_movement();
