@@ -38,7 +38,6 @@ impl Mul for Transform {
     }
 }
 
-
 #[derive(Clone, Copy)]
 pub struct Player;
 

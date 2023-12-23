@@ -13,9 +13,6 @@ pub mod shader_compiler;
 pub mod timing;
 pub mod ui;
 
-// User-facing project name
-const PROJECT_NAME: &str = "Videoland";
-
 pub use glam as math;
 pub use videoland_ecs as ecs;
 pub use winit;
@@ -26,7 +23,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use uuid::Uuid;
-use videoland_ecs::Registry;
+use videoland_ecs::{Registry, Schedule};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -50,11 +47,12 @@ struct AppState {
     material: Uuid,
     ui: Ui,
     reg: Registry,
+    schedule: Schedule,
     thread_pool: Arc<ThreadPool>,
 }
 
 impl AppState {
-    fn new(window: Window) -> Self {
+    fn new(schedule: Schedule, window: Window) -> Self {
         let settings = Settings::load_global();
 
         let thread_pool = Arc::new(ThreadPoolBuilder::new().num_threads(4).build().unwrap());
@@ -93,6 +91,7 @@ impl AppState {
             material,
             ui,
             reg,
+            schedule,
             thread_pool,
         }
     }
@@ -159,12 +158,14 @@ impl AppState {
     fn update(&mut self) -> EventLoopIterationDecision {
         let rendered_ui = self.ui.finish_frame(&self.window);
         self.ui.begin_frame(&self.window);
+
         {
             let mut timings = self.reg.res_mut::<Timings>();
             timings.advance_frame();
             let dt = timings.dtime_s() as f32;
         }
 
+        self.schedule.execute(&self.reg);
         self.loader.poll(&mut self.reg);
         // self.renderer.upload_meshes(&mut self.world);
         self.render(rendered_ui);
@@ -179,37 +180,53 @@ pub enum EventLoopIterationDecision {
     Break,
 }
 
-pub fn run() {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .init();
+pub struct AppInfo {
+    pub internal_name: String,
+    pub title: String,
+}
 
-    let event_loop = EventLoop::new().unwrap();
-    let window = WindowBuilder::new()
-        .with_inner_size(PhysicalSize::new(1600, 900))
-        .build(&event_loop)
-        .unwrap();
+pub struct App {
+    schedule: Schedule,
+    info: AppInfo,
+}
 
-    let mut state = AppState::new(window);
+impl App {
+    pub fn new(schedule: Schedule, info: AppInfo) -> Self {
+        Self { schedule, info }
+    }
 
-    event_loop.set_control_flow(ControlFlow::Poll);
+    pub fn run(mut self) {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::DEBUG)
+            .init();
 
-    event_loop
-        .run(move |event, elwt| {
-            let cf = match event {
-                Event::WindowEvent { event, .. } => state.handle_window_event(event),
-                Event::DeviceEvent { event, .. } => state.handle_device_event(event),
-                Event::AboutToWait => state.update(),
-                Event::LoopExiting => {
-                    state.settings.save();
-                    EventLoopIterationDecision::Break
+        let event_loop = EventLoop::new().unwrap();
+        let window = WindowBuilder::new()
+            .with_inner_size(PhysicalSize::new(1600, 900))
+            .build(&event_loop)
+            .unwrap();
+
+        let mut state = AppState::new(self.schedule, window);
+
+        event_loop.set_control_flow(ControlFlow::Poll);
+
+        event_loop
+            .run(move |event, elwt| {
+                let cf = match event {
+                    Event::WindowEvent { event, .. } => state.handle_window_event(event),
+                    Event::DeviceEvent { event, .. } => state.handle_device_event(event),
+                    Event::AboutToWait => state.update(),
+                    Event::LoopExiting => {
+                        state.settings.save();
+                        EventLoopIterationDecision::Break
+                    }
+                    _ => EventLoopIterationDecision::Continue,
+                };
+
+                if let EventLoopIterationDecision::Break = cf {
+                    elwt.exit();
                 }
-                _ => EventLoopIterationDecision::Continue,
-            };
-
-            if let EventLoopIterationDecision::Break = cf {
-                elwt.exit();
-            }
-        })
-        .unwrap();
+            })
+            .unwrap();
+    }
 }

@@ -116,7 +116,9 @@ impl Ui {
         // FIXME: uncomment once egui gets winit 0.29 support
         // self.winit_state
         //     .handle_platform_output(window, &self.ctx, output.platform_output);
-        let shapes = self.ctx.tessellate(output.shapes, window.scale_factor() as f32);
+        let shapes = self
+            .ctx
+            .tessellate(output.shapes, window.scale_factor() as f32);
         let textures_delta = output.textures_delta;
 
         RenderedUi {

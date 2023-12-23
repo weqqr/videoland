@@ -15,7 +15,12 @@ pub enum Action {
     Sprint,
 }
 
-pub fn move_player(world: &mut Registry, player: Entity, input_state: &InputState, timings: &Timings) {
+pub fn move_player(
+    world: &mut Registry,
+    player: Entity,
+    input_state: &InputState,
+    timings: &Timings,
+) {
     let mut movement_dir = Vec3::ZERO;
 
     let speed = 4.0; // in m/s

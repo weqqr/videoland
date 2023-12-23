@@ -3,6 +3,7 @@
 use std::any::{Any, TypeId};
 use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 
 use ahash::HashMap;
 
@@ -67,8 +68,30 @@ pub struct Res<'a, T: 'static> {
     value: Ref<'a, T>,
 }
 
+impl<'a, T> Deref for Res<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        Ref::deref(&self.value)
+    }
+}
+
 pub struct ResMut<'a, T: 'static> {
     value: RefMut<'a, T>,
+}
+
+impl<'a, T> Deref for ResMut<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        RefMut::deref(&self.value)
+    }
+}
+
+impl<'a, T> DerefMut for ResMut<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        RefMut::deref_mut(&mut self.value)
+    }
 }
 
 pub struct SystemFn<F, FnParams> {
