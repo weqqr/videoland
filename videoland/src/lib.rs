@@ -16,6 +16,7 @@ pub mod ui;
 // User-facing project name
 const PROJECT_NAME: &str = "Videoland";
 
+use ecs::SystemFn;
 pub use glam as math;
 pub use videoland_ecs as ecs;
 pub use winit;
@@ -87,7 +88,10 @@ impl AppState {
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
 
+        fn test(a: Res<i32>, b: Res<String>) {}
+
         let mut schedule = Schedule::new();
+        schedule.add_system(test);
 
         Self {
             settings,

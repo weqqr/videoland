@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use std::any::{TypeId, Any};
-use std::cell::{RefCell, Ref, RefMut};
+use std::any::{Any, TypeId};
+use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
 
 use ahash::HashMap;
@@ -78,10 +78,15 @@ impl<F: FnMut(Res<T>, Res<U>), T: 'static, U: 'static> System for SystemFn<F, (T
     }
 }
 
-impl<F: FnMut(Res<T>, Res<U>), T: 'static, U: 'static> From<F> for SystemFn<F, (T, U)> {
-    fn from(func: F) -> Self {
-        Self {
-            func,
+impl<F: , T, U> IntoSystem<(T, U), SystemFn<Self, (T, U)>> for F
+where
+    T: 'static,
+    U: 'static,
+    F: FnMut(Res<T>, Res<U>)
+{
+    fn into_system(self) -> SystemFn<Self, (T, U)> {
+        SystemFn {
+            func: self,
             _pd: PhantomData,
         }
     }
@@ -89,6 +94,11 @@ impl<F: FnMut(Res<T>, Res<U>), T: 'static, U: 'static> From<F> for SystemFn<F, (
 
 pub trait System {
     fn run(&mut self, reg: &Registry);
+}
+
+// user code will have to specify type parameters in add_system without this
+pub trait IntoSystem<I, S> {
+    fn into_system(self) -> S;
 }
 
 pub struct Schedule {
@@ -102,8 +112,8 @@ impl Schedule {
         }
     }
 
-    pub fn add_system<S: System + 'static>(&mut self, s: impl Into<S>) {
-        self.systems.push(Box::new(s.into()));
+    pub fn add_system<I, S: System + 'static>(&mut self, s: impl IntoSystem<I, S>) {
+        self.systems.push(Box::new(s.into_system()));
     }
 
     pub fn execute(&mut self, reg: &Registry) {
