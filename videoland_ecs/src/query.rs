@@ -1,4 +1,5 @@
 use std::cell::{Ref, RefMut};
+use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 use crate::exec::SystemParam;
@@ -55,60 +56,79 @@ impl<'a, T> DerefMut for ResMut<'a, T> {
 }
 
 pub trait Fetch {
+    type Item<'a>;
     type Output<'a>;
 
-    fn fetch(archetype: &Archetype) -> Self::Output<'_>;
+    fn fetch(archetype: &Archetype) -> Option<Self::Output<'_>>;
 }
 
 impl<T: 'static> Fetch for &T {
+    type Item<'a> = &'a T;
     type Output<'a> = Column<'a, T>;
 
-    fn fetch(archetype: &Archetype) -> Self::Output<'_> {
+    fn fetch(archetype: &Archetype) -> Option<Self::Output<'_>> {
         archetype.get_component_column_by_type::<T>()
     }
 }
 
 impl<T: 'static> Fetch for &mut T {
+    type Item<'a> = &'a mut T;
     type Output<'a> = ColumnMut<'a, T>;
 
-    fn fetch(archetype: &Archetype) -> Self::Output<'_> {
+    fn fetch(archetype: &Archetype) -> Option<Self::Output<'_>> {
         archetype.get_component_column_mut_by_type::<T>()
     }
 }
 
 pub struct Query<'a, M: Match> {
-    columns: M::Output<'a>,
+    archetypes: &'a Vec<Archetype>,
+    current_archetype: usize,
+    columns: Option<M::Output<'a>>,
+    _pd: PhantomData<M>,
 }
 
 impl<'a, M: Match> SystemParam for Query<'a, M> {
     type Item<'w> = Query<'w, M>;
 
     fn get(reg: &Registry) -> Self::Item<'_> {
-        M::match_columns(&reg.archetypes[0])
+        Query {
+            archetypes: reg.archetypes(),
+            current_archetype: 0,
+            columns: None,
+            _pd: PhantomData,
+        }
+    }
+}
+
+impl<'a, M: Match> Iterator for Query<'a, M> {
+    type Item = M::Item<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unimplemented!()
     }
 }
 
 pub trait Match: Sized {
+    type Item<'a>;
     type Output<'a>;
 
-    fn match_columns(arch: &Archetype) -> Query<Self>;
+    fn match_columns(arch: &Archetype) -> Option<Self::Output<'_>>;
 }
 
 macro_rules! impl_match_for_fetch_tuple {
     ($($ty:ident),*) => {
         impl<$($ty: Fetch),*> Match for ($($ty,)*) {
+            type Item<'a> = ($($ty::Item<'a>,)*);
             type Output<'a> = ($($ty::Output<'a>,)*);
 
             #[allow(non_snake_case)]
             #[allow(unused_variables)]
-            fn match_columns(arch: &Archetype) -> Query<Self> {
+            fn match_columns(arch: &Archetype) -> Option<Self::Output<'_>> {
                 $(
-                    let $ty = $ty::fetch(arch);
+                    let $ty = $ty::fetch(arch)?;
                 )*
 
-                Query {
-                    columns: ($($ty,)*),
-                }
+                Some(($($ty,)*))
             }
         }
     };

@@ -74,26 +74,26 @@ impl Archetype {
         self.types.contains(&id)
     }
 
-    fn get_component_column_by_type<T: 'static>(&self) -> Column<T> {
+    fn get_component_column_by_type<T: 'static>(&self) -> Option<Column<T>> {
         let id = TypeId::of::<T>();
-        let id = self.types.iter().position(|x| *x == id).unwrap();
+        let id = self.types.iter().position(|x| *x == id)?;
         let column = self.component_columns[id].borrow();
         let column = Ref::map(column, |c| c.downcast_ref::<Vec<T>>().unwrap());
 
-        Column {
+        Some(Column {
             inner: column,
-        }
+        })
     }
 
-    fn get_component_column_mut_by_type<T: 'static>(&self) -> ColumnMut<T> {
+    fn get_component_column_mut_by_type<T: 'static>(&self) -> Option<ColumnMut<T>> {
         let id = TypeId::of::<T>();
-        let id = self.types.iter().position(|x| *x == id).unwrap();
+        let id = self.types.iter().position(|x| *x == id)?;
         let column = self.component_columns[id].borrow_mut();
         let column = RefMut::map(column, |c| c.downcast_mut::<Vec<T>>().unwrap());
 
-        ColumnMut {
+        Some(ColumnMut {
             inner: column,
-        }
+        })
     }
 
     fn get_entities(&self) -> &Vec<Entity> {
