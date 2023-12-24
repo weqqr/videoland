@@ -1,5 +1,5 @@
 use videoland::camera::Camera;
-use videoland::ecs::{Entity, Registry};
+use videoland::ecs::Res;
 use videoland::input::InputState;
 use videoland::math::Vec3;
 use videoland::timing::Timings;
@@ -15,12 +15,7 @@ pub enum Action {
     Sprint,
 }
 
-pub fn move_player(
-    world: &mut Registry,
-    player: Entity,
-    input_state: &InputState,
-    timings: &Timings,
-) {
+pub fn move_player(input_state: Res<InputState>, timings: Res<Timings>) {
     let mut movement_dir = Vec3::ZERO;
 
     let speed = 4.0; // in m/s

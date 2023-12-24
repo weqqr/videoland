@@ -195,7 +195,7 @@ impl App {
         Self { schedule, info }
     }
 
-    pub fn run(mut self) {
+    pub fn run(self) {
         tracing_subscriber::fmt()
             .with_max_level(tracing::Level::DEBUG)
             .init();

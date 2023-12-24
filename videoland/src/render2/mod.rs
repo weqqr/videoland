@@ -2,14 +2,13 @@
 #![allow(clippy::new_without_default)]
 
 use ahash::AHashMap;
-use glam::{Mat4, Quat, Vec3};
+use glam::Mat4;
 use uuid::Uuid;
 use videoland_ecs::Registry;
 use winit::window::Window;
 
 use crate::camera::Camera;
-use crate::domain::{Name, RenderableMesh, Transform};
-use crate::geometry::{Mesh, Model, Vertex};
+use crate::geometry::Vertex;
 
 pub struct Shader {
     data: Vec<u8>,
