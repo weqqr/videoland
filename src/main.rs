@@ -1,8 +1,8 @@
+use videoland::ecs::{Registry, Res, Schedule, Query};
 use videoland::input::InputState;
+use videoland::loader::Loader;
 use videoland::winit::keyboard::KeyCode;
 use videoland::{App, AppInfo};
-use videoland::ecs::{Registry, Schedule, Res};
-use videoland::loader::Loader;
 
 mod control;
 
@@ -14,7 +14,7 @@ fn add_stuff_to_world(registry: &mut Registry, loader: &Loader) {
     // loader.load_and_attach_model_sync(sponza, "models/sponza.obj");
 }
 
-fn test(input_state: Res<InputState>) {
+fn test(input_state: Res<InputState>, q: Query<(&i32, &mut String)>) {
     if input_state.is_key_pressed(KeyCode::KeyW) {
         println!("W pressed");
     }

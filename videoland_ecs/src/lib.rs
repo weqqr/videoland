@@ -13,12 +13,14 @@ use ahash::HashMap;
 
 pub struct Registry {
     resources: HashMap<TypeId, Box<RefCell<dyn Any>>>,
+    archetypes: Vec<Archetype>,
 }
 
 impl Registry {
     pub fn new() -> Self {
         Self {
             resources: HashMap::default(),
+            archetypes: Vec::new(),
         }
     }
 
@@ -37,6 +39,10 @@ impl Registry {
         let id = TypeId::of::<R>();
         let r = self.resources[&id].borrow_mut();
         RefMut::map(r, |x| x.downcast_mut().unwrap())
+    }
+
+    pub fn archetypes(&self) -> &Vec<Archetype> {
+        &self.archetypes
     }
 }
 
@@ -89,7 +95,6 @@ impl Archetype {
             inner: column,
         }
     }
-
 
     fn get_entities(&self) -> &Vec<Entity> {
         &self.entities
