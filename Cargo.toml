@@ -12,6 +12,7 @@ videoland = { path = "videoland" }
 [workspace.dependencies]
 egui = "0.24.1"
 ahash = "0.8.6"
+tracing = "0.1.40"
 
 [workspace.lints.clippy]
 single_match = "allow"

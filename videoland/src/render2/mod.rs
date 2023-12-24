@@ -6,6 +6,7 @@ use glam::Mat4;
 use uuid::Uuid;
 use videoland_ecs::Registry;
 use winit::window::Window;
+use videoland_rhi as rhi;
 
 use crate::camera::Camera;
 use crate::geometry::Vertex;
@@ -33,9 +34,9 @@ pub struct Extent2D {
     pub height: u32,
 }
 
-impl From<Extent2D> for ra::Extent2D {
-    fn from(extent: Extent2D) -> ra::Extent2D {
-        ra::Extent2D {
+impl From<Extent2D> for rhi::Extent2D {
+    fn from(extent: Extent2D) -> rhi::Extent2D {
+        rhi::Extent2D {
             width: extent.width,
             height: extent.height,
         }
@@ -55,12 +56,12 @@ pub struct MaterialDesc<'a> {
 }
 
 struct GpuMaterial {
-    pipeline: ra::Pipeline,
+    pipeline: rhi::Pipeline,
 }
 
 struct GpuMesh {
     vertex_count: u32,
-    buffer: ra::Buffer,
+    buffer: rhi::Buffer,
 }
 
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -71,15 +72,15 @@ struct PushConstants {
 }
 
 pub struct Renderer {
-    device: ra::Device2,
+    device: rhi::Device2,
 
     materials: AHashMap<Uuid, GpuMaterial>,
     meshes: AHashMap<Uuid, GpuMesh>,
 
-    depth_desc: ra::TextureDesc,
-    depth: ra::Texture,
-    depth_view: ra::TextureView,
-    depth_layout: ra::TextureLayout,
+    depth_desc: rhi::TextureDesc,
+    depth: rhi::Texture,
+    depth_view: rhi::TextureView,
+    depth_layout: rhi::TextureLayout,
 }
 
 impl Drop for Renderer {
@@ -99,11 +100,11 @@ impl Drop for Renderer {
 
 impl Renderer {
     pub fn new(window: &Window) -> Self {
-        let device = ra::Device2::new(window).unwrap();
+        let device = rhi::Device2::new(window).unwrap();
 
         let size = window.inner_size();
-        let depth_desc = ra::TextureDesc {
-            extent: ra::Extent3D {
+        let depth_desc = rhi::TextureDesc {
+            extent: rhi::Extent3D {
                 width: size.width,
                 height: size.height,
                 depth: 1,
@@ -114,7 +115,7 @@ impl Renderer {
         let depth_view = device
             .create_texture_view(
                 &depth,
-                &ra::TextureViewDesc {
+                &rhi::TextureViewDesc {
                     extent: depth_desc.extent,
                 },
             )
@@ -129,7 +130,7 @@ impl Renderer {
             depth_desc,
             depth,
             depth_view,
-            depth_layout: ra::TextureLayout::Undefined,
+            depth_layout: rhi::TextureLayout::Undefined,
         }
     }
 
@@ -145,7 +146,7 @@ impl Renderer {
 
         let pipeline = self
             .device
-            .create_pipeline(&ra::PipelineDesc {
+            .create_pipeline(&rhi::PipelineDesc {
                 vertex: &vs,
                 fragment: &fs,
                 vertex_layout: Vertex::layout(),
@@ -233,7 +234,7 @@ impl Renderer {
             .device
             .create_texture_view(
                 &depth,
-                &ra::TextureViewDesc {
+                &rhi::TextureViewDesc {
                     extent: self.depth_desc.extent,
                 },
             )
@@ -241,7 +242,7 @@ impl Renderer {
 
         std::mem::swap(&mut self.depth, &mut depth);
         std::mem::swap(&mut self.depth_view, &mut depth_view);
-        self.depth_layout = ra::TextureLayout::Undefined;
+        self.depth_layout = rhi::TextureLayout::Undefined;
 
         self.device.destroy_texture_view(&mut depth_view);
         self.device.destroy_texture(&mut depth);
@@ -262,11 +263,11 @@ impl Renderer {
         command_buffer.texture_barrier(
             &self.depth,
             self.depth_layout,
-            ra::TextureLayout::DepthStencil,
+            rhi::TextureLayout::DepthStencil,
         );
-        self.depth_layout = ra::TextureLayout::DepthStencil;
+        self.depth_layout = rhi::TextureLayout::DepthStencil;
 
-        command_buffer.begin_rendering(ra::RenderPassDesc {
+        command_buffer.begin_rendering(rhi::RenderPassDesc {
             color_attachment: &frame_image,
             depth_attachment: &self.depth_view,
             render_area: viewport_extent.into(),

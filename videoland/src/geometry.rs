@@ -1,3 +1,4 @@
+use videoland_rhi as rhi;
 use std::io::Cursor;
 
 use glam::{Vec2, Vec3};
@@ -16,28 +17,28 @@ impl Vertex {
         data.extend_from_slice(&self.texcoord.to_array());
     }
 
-    pub fn layout() -> ra::VertexBufferLayout<'static> {
-        ra::VertexBufferLayout {
+    pub fn layout() -> rhi::VertexBufferLayout<'static> {
+        rhi::VertexBufferLayout {
             stride: 8 * 4,
             attributes: &[
                 // position
-                ra::VertexAttribute {
+                rhi::VertexAttribute {
                     binding: 0,
-                    format: ra::VertexFormat::Float32x3,
+                    format: rhi::VertexFormat::Float32x3,
                     offset: 0,
                     location: 0,
                 },
                 // normal
-                ra::VertexAttribute {
+                rhi::VertexAttribute {
                     binding: 0,
-                    format: ra::VertexFormat::Float32x3,
+                    format: rhi::VertexFormat::Float32x3,
                     offset: 3 * 4,
                     location: 1,
                 },
                 // texcoord
-                ra::VertexAttribute {
+                rhi::VertexAttribute {
                     binding: 0,
-                    format: ra::VertexFormat::Float32x2,
+                    format: rhi::VertexFormat::Float32x2,
                     offset: 6 * 4,
                     location: 2,
                 },

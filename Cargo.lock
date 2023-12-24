@@ -1457,29 +1457,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ra"
-version = "0.1.0"
-dependencies = [
- "ash",
- "ash-window",
- "bitflags 2.4.1",
- "bytemuck",
- "gpu-alloc",
- "gpu-alloc-ash",
- "raw-window-handle 0.5.2",
- "thiserror",
- "tinyvec",
- "tracing",
-]
-
-[[package]]
-name = "ra_egui"
-version = "0.1.0"
-dependencies = [
- "egui",
-]
-
-[[package]]
 name = "raw-window-handle"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2026,8 +2003,6 @@ dependencies = [
  "mlua",
  "obj",
  "physx-sys",
- "ra",
- "ra_egui",
  "raw-window-handle 0.5.2",
  "rayon",
  "serde",
@@ -2037,6 +2012,8 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "videoland_ecs",
+ "videoland_egui",
+ "videoland_rhi",
  "winit 0.29.3",
 ]
 
@@ -2045,6 +2022,29 @@ name = "videoland_ecs"
 version = "0.1.0"
 dependencies = [
  "ahash",
+]
+
+[[package]]
+name = "videoland_egui"
+version = "0.1.0"
+dependencies = [
+ "egui",
+]
+
+[[package]]
+name = "videoland_rhi"
+version = "0.1.0"
+dependencies = [
+ "ash",
+ "ash-window",
+ "bitflags 2.4.1",
+ "bytemuck",
+ "gpu-alloc",
+ "gpu-alloc-ash",
+ "raw-window-handle 0.5.2",
+ "thiserror",
+ "tinyvec",
+ "tracing",
 ]
 
 [[package]]
