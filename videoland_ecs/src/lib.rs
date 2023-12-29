@@ -31,13 +31,25 @@ impl Registry {
 
     pub fn res<R: 'static>(&self) -> Ref<R> {
         let id = TypeId::of::<R>();
-        let r = self.resources[&id].borrow();
-        Ref::map(r, |x| x.downcast_ref().unwrap())
+        let resource = self
+            .resources
+            .get(&id)
+            .unwrap_or_else(|| {
+                panic!("unknown resource: {}", std::any::type_name::<R>());
+            })
+            .borrow();
+        Ref::map(resource, |x| x.downcast_ref().unwrap())
     }
 
     pub fn res_mut<R: 'static>(&self) -> RefMut<R> {
         let id = TypeId::of::<R>();
-        let r = self.resources[&id].borrow_mut();
+        let r = self
+            .resources
+            .get(&id)
+            .unwrap_or_else(|| {
+                panic!("unknown resource: {}", std::any::type_name::<R>());
+            })
+            .borrow_mut();
         RefMut::map(r, |x| x.downcast_mut().unwrap())
     }
 
@@ -80,9 +92,7 @@ impl Archetype {
         let column = self.component_columns[id].borrow();
         let column = Ref::map(column, |c| c.downcast_ref::<Vec<T>>().unwrap());
 
-        Some(Column {
-            inner: column,
-        })
+        Some(Column { inner: column })
     }
 
     fn get_component_column_mut_by_type<T: 'static>(&self) -> Option<ColumnMut<T>> {
@@ -91,9 +101,7 @@ impl Archetype {
         let column = self.component_columns[id].borrow_mut();
         let column = RefMut::map(column, |c| c.downcast_mut::<Vec<T>>().unwrap());
 
-        Some(ColumnMut {
-            inner: column,
-        })
+        Some(ColumnMut { inner: column })
     }
 
     fn get_entities(&self) -> &Vec<Entity> {
