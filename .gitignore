@@ -1,4 +1,5 @@
 /target
+/vendor
 /data/models
 /videoland.json
-/vendor
+/bin
