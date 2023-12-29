@@ -1,5 +1,5 @@
 use videoland::camera::Camera;
-use videoland::ecs::Res;
+use videoland::ecs::{Res, ResMut};
 use videoland::input::InputState;
 use videoland::math::Vec3;
 use videoland::timing::Timings;
@@ -15,17 +15,21 @@ pub enum Action {
     Sprint,
 }
 
-pub fn move_player(input_state: Res<InputState>, timings: Res<Timings>) {
+pub struct Player {
+    camera: Camera,
+}
+
+pub fn move_player(
+    input_state: Res<InputState>,
+    timings: Res<Timings>,
+    mut player: ResMut<Player>,
+) {
     let mut movement_dir = Vec3::ZERO;
 
-    let speed = 4.0; // in m/s
+    let speed = 1.5; // in m/s
     let distance = speed * timings.dtime_s() as f32;
 
-    // let mut player_components = world.query_one::<&mut Camera>(player).unwrap();
-    // let camera = player_components.get().unwrap();
-    let mut camera = Camera::new();
-
-    let (forward, right) = camera.forward_right();
+    let (forward, right) = player.camera.forward_right();
     let forward = forward.normalize();
     let right = right.normalize();
 
@@ -54,5 +58,5 @@ pub fn move_player(input_state: Res<InputState>, timings: Res<Timings>) {
     }
 
     movement_dir = movement_dir.normalize_or_zero();
-    camera.position += movement_dir * distance;
+    player.camera.position += movement_dir * distance;
 }

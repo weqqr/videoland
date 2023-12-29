@@ -23,7 +23,7 @@ fn test(input_state: Res<InputState>, q: Query<(&i32, &mut String)>) {
 fn main() {
     let mut schedule = Schedule::new();
     schedule.add_system(test);
-    schedule.add_system(control::move_player);
+    // schedule.add_system(control::move_player);
 
     let app_info = AppInfo {
         internal_name: "dsots".to_owned(),

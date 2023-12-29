@@ -65,6 +65,8 @@ impl AppState {
 
         let mut reg = Registry::new();
 
+        reg.spawn((42i32, "abc".to_owned()));
+
         let vertex_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Vertex);
         let fragment_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Fragment);
 
