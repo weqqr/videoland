@@ -1,6 +1,5 @@
-use videoland::ecs::{Registry, Res, Schedule, Query};
+use videoland::ecs::{Res, Schedule};
 use videoland::input::InputState;
-use videoland::loader::Loader;
 use videoland::winit::keyboard::KeyCode;
 use videoland::{App, AppInfo};
 

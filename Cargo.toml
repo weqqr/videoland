@@ -12,6 +12,8 @@ videoland = { path = "videoland" }
 [workspace.dependencies]
 egui = "0.24.1"
 ahash = "0.8.6"
+bytemuck = "1.14.0"
+thiserror = "1.0.49"
 tracing = "0.1.40"
 
 [workspace.lints.clippy]

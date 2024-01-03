@@ -1,8 +1,28 @@
 use std::path::PathBuf;
 
-use hassle_rs::{Dxc, DxcCompiler, DxcIncludeHandler, DxcLibrary};
+use hassle_rs::{DxcIncludeHandler, HassleError, DxcLibrary, DxcCompiler, Dxc};
 
-use crate::render2::Shader;
+pub enum ShaderStage {
+    Vertex,
+    Fragment,
+    Compute,
+}
+
+pub struct Shader {
+    data: Vec<u8>,
+}
+
+impl Shader {
+    pub fn from_spirv_unchecked(data: Vec<u8>) -> Self {
+        Self {
+            data,
+        }
+    }
+
+    pub fn spirv(&self) -> &[u32] {
+        bytemuck::cast_slice(&self.data)
+    }
+}
 
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
@@ -11,7 +31,7 @@ pub enum Error {
     Compile(String),
 
     #[error("shader compiler error: {0}")]
-    Hassle(#[from] hassle_rs::HassleError),
+    Hassle(#[from] HassleError),
 
     #[error("UTF-8 error: {0}")]
     Utf8(#[from] std::string::FromUtf8Error),
@@ -43,12 +63,6 @@ pub struct ShaderCompiler {
     library: DxcLibrary,
     compiler: DxcCompiler,
     dxc: Dxc,
-}
-
-pub enum ShaderStage {
-    Vertex,
-    Fragment,
-    Compute,
 }
 
 impl ShaderStage {

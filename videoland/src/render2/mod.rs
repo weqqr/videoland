@@ -4,29 +4,13 @@
 use ahash::AHashMap;
 use glam::Mat4;
 use uuid::Uuid;
+use videoland_ap::shader::Shader;
 use videoland_ecs::Registry;
 use winit::window::Window;
 use videoland_rhi as rhi;
 
 use crate::camera::Camera;
 use crate::geometry::Vertex;
-
-pub struct Shader {
-    data: Vec<u8>,
-}
-
-impl Shader {
-    #[cfg(feature = "vk")]
-    pub fn from_spirv_unchecked(data: Vec<u8>) -> Self {
-        assert!(data.len() % 4 == 0, "spirv has invalid size");
-
-        Self { data }
-    }
-
-    pub fn data(&self) -> &[u32] {
-        bytemuck::cast_slice(&self.data)
-    }
-}
 
 #[derive(Clone, Copy)]
 pub struct Extent2D {
@@ -137,11 +121,11 @@ impl Renderer {
     pub fn upload_material(&mut self, id: Uuid, desc: &MaterialDesc) {
         let vs = self
             .device
-            .create_shader_module(desc.vertex_shader.data())
+            .create_shader_module(desc.vertex_shader.spirv())
             .unwrap();
         let fs = self
             .device
-            .create_shader_module(desc.fragment_shader.data())
+            .create_shader_module(desc.fragment_shader.spirv())
             .unwrap();
 
         let pipeline = self

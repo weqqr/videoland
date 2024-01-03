@@ -13,11 +13,10 @@ videoland_rhi = { path = "../videoland_rhi" }
 
 ahash = { workspace = true }
 bitflags = "2.4.1"
-bytemuck = { version = "1.14.0", features = ["derive"] }
+bytemuck = { workspace = true, features = ["derive"] }
 egui = { workspace = true }
 egui-winit = "0.24.1"
 glam = { version = "0.24.2", features = ["bytemuck"] }
-hassle-rs = "0.10.0"
 indexmap = "2.0.2"
 mlua = { version = "0.9.1", features = ["luau"] }
 obj = "0.10.2"
@@ -26,7 +25,7 @@ raw-window-handle = "0.5.0"
 rayon = "1.8.0"
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0.107"
-thiserror = "1.0.49"
+thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = "0.3.17"
 uuid = { version = "1.4.1", features = ["v4"] }

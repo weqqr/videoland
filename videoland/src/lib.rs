@@ -5,19 +5,17 @@ pub mod camera;
 pub mod domain;
 pub mod geometry;
 pub mod input;
-pub mod loader;
 pub mod render2;
 pub mod settings;
-pub mod shader_compiler;
 pub mod timing;
 pub mod ui;
 
+use ap::shader::ShaderStage;
 pub use glam as math;
-pub use videoland_ecs as ecs;
 pub use videoland_ap as ap;
+pub use videoland_ecs as ecs;
 pub use winit;
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use indexmap::IndexMap;
@@ -30,17 +28,15 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
+use crate::ap::Vfs;
 use crate::camera::Camera;
 use crate::input::InputState;
-use crate::loader::Loader;
 use crate::render2::{Extent2D, MaterialDesc, Renderer};
 use crate::settings::Settings;
-use crate::shader_compiler::ShaderStage;
 use crate::timing::Timings;
 use crate::ui::{RenderedUi, Ui};
 
 struct AppState {
-    loader: Loader,
     renderer: Renderer,
     material: Uuid,
     reg: Registry,
@@ -54,7 +50,7 @@ impl AppState {
 
         let thread_pool = Arc::new(ThreadPoolBuilder::new().num_threads(4).build().unwrap());
 
-        let loader = Loader::new(PathBuf::from("data"), Arc::clone(&thread_pool));
+        let vfs = Vfs::new("data");
         let mut renderer = Renderer::new(&window);
         let mut ui = Ui::new(&window);
 
@@ -62,8 +58,8 @@ impl AppState {
 
         let mut reg = Registry::new();
 
-        let vertex_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Vertex);
-        let fragment_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Fragment);
+        let vertex_shader = &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Vertex);
+        let fragment_shader = &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Fragment);
 
         let material = Uuid::new_v4();
         renderer.upload_material(
@@ -82,10 +78,10 @@ impl AppState {
 
         reg.insert(ui);
         reg.insert(window);
+        reg.insert(vfs);
         reg.insert(settings);
 
         Self {
-            loader,
             renderer,
             material,
             reg,
@@ -171,7 +167,7 @@ impl AppState {
         }
 
         self.schedule.execute(&self.reg);
-        self.loader.poll(&mut self.reg);
+        // self.loader.poll(&mut self.reg);
         // self.renderer.upload_meshes(&mut self.world);
         self.render(rendered_ui);
         self.reg.res_mut::<InputState>().reset_mouse_movement();

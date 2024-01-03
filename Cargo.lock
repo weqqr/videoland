@@ -1998,7 +1998,6 @@ dependencies = [
  "egui",
  "egui-winit",
  "glam",
- "hassle-rs",
  "indexmap",
  "mlua",
  "obj",
@@ -2021,6 +2020,11 @@ dependencies = [
 [[package]]
 name = "videoland_ap"
 version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "hassle-rs",
+ "thiserror",
+]
 
 [[package]]
 name = "videoland_ecs"
