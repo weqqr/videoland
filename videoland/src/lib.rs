@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-pub mod automata;
 pub mod camera;
 pub mod domain;
 pub mod geometry;
@@ -15,6 +14,7 @@ pub mod ui;
 
 pub use glam as math;
 pub use videoland_ecs as ecs;
+pub use videoland_ap as ap;
 pub use winit;
 
 use std::path::PathBuf;
@@ -40,12 +40,9 @@ use crate::timing::Timings;
 use crate::ui::{RenderedUi, Ui};
 
 struct AppState {
-    settings: Settings,
     loader: Loader,
-    window: Window,
     renderer: Renderer,
     material: Uuid,
-    ui: Ui,
     reg: Registry,
     schedule: Schedule,
     thread_pool: Arc<ThreadPool>,
@@ -65,8 +62,6 @@ impl AppState {
 
         let mut reg = Registry::new();
 
-        reg.spawn((42i32, "abc".to_owned()));
-
         let vertex_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Vertex);
         let fragment_shader = &loader.load_shader("shaders/object.hlsl", ShaderStage::Fragment);
 
@@ -85,13 +80,14 @@ impl AppState {
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
 
+        reg.insert(ui);
+        reg.insert(window);
+        reg.insert(settings);
+
         Self {
-            settings,
             loader,
-            window,
             renderer,
             material,
-            ui,
             reg,
             schedule,
             thread_pool,
@@ -107,7 +103,7 @@ impl AppState {
     }
 
     fn handle_window_event(&mut self, event: WindowEvent) -> EventLoopIterationDecision {
-        self.ui.on_event(&event);
+        self.reg.res_mut::<Ui>().on_event(&event);
 
         self.reg.res_mut::<InputState>().submit_window_input(&event);
 
@@ -131,7 +127,7 @@ impl AppState {
     }
 
     pub(crate) fn render(&mut self, _rendered_ui: RenderedUi) {
-        let window_size = self.window.inner_size();
+        let window_size = self.reg.res::<Window>().inner_size();
 
         let extent = Extent2D {
             width: window_size.width,
@@ -158,8 +154,15 @@ impl AppState {
     }
 
     fn update(&mut self) -> EventLoopIterationDecision {
-        let rendered_ui = self.ui.finish_frame(&self.window);
-        self.ui.begin_frame(&self.window);
+        let rendered_ui = {
+            let window = self.reg.res::<Window>();
+            let mut ui = self.reg.res_mut::<Ui>();
+
+            let rendered_ui = ui.finish_frame(&window);
+            ui.begin_frame(&window);
+
+            rendered_ui
+        };
 
         {
             let mut timings = self.reg.res_mut::<Timings>();
@@ -219,7 +222,7 @@ impl App {
                     Event::DeviceEvent { event, .. } => state.handle_device_event(event),
                     Event::AboutToWait => state.update(),
                     Event::LoopExiting => {
-                        state.settings.save();
+                        state.reg.res::<Settings>().save();
                         EventLoopIterationDecision::Break
                     }
                     _ => EventLoopIterationDecision::Continue,

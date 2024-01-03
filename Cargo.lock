@@ -2011,11 +2011,16 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+ "videoland_ap",
  "videoland_ecs",
  "videoland_egui",
  "videoland_rhi",
  "winit 0.29.3",
 ]
+
+[[package]]
+name = "videoland_ap"
+version = "0.1.0"
 
 [[package]]
 name = "videoland_ecs"

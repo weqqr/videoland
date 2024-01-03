@@ -59,14 +59,14 @@ pub trait Fetch {
     type Item<'a>;
     type Output<'a>;
 
-    fn fetch(archetype: &Archetype) -> Option<Self::Output<'_>>;
+    fn fetch_column(archetype: &Archetype) -> Option<Self::Output<'_>>;
 }
 
 impl<T: 'static> Fetch for &T {
     type Item<'a> = &'a T;
     type Output<'a> = Column<'a, T>;
 
-    fn fetch(archetype: &Archetype) -> Option<Self::Output<'_>> {
+    fn fetch_column(archetype: &Archetype) -> Option<Self::Output<'_>> {
         archetype.get_component_column_by_type::<T>()
     }
 }
@@ -75,7 +75,7 @@ impl<T: 'static> Fetch for &mut T {
     type Item<'a> = &'a mut T;
     type Output<'a> = ColumnMut<'a, T>;
 
-    fn fetch(archetype: &Archetype) -> Option<Self::Output<'_>> {
+    fn fetch_column(archetype: &Archetype) -> Option<Self::Output<'_>> {
         archetype.get_component_column_mut_by_type::<T>()
     }
 }
@@ -104,6 +104,9 @@ impl<'a, M: Match> Iterator for Query<'a, M> {
     type Item = M::Item<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        let archetype = self.archetypes.get(self.current_archetype)?;
+
+
         unimplemented!()
     }
 }
@@ -113,22 +116,29 @@ pub trait Match: Sized {
     type Output<'a>;
 
     fn match_columns(arch: &Archetype) -> Option<Self::Output<'_>>;
+    fn extract_row<'a>(arch: &Self::Output<'a>) -> Option<Self::Item<'a>>;
 }
 
 macro_rules! impl_match_for_fetch_tuple {
     ($($ty:ident),*) => {
+        #[allow(non_snake_case)]
+        #[allow(unused_variables)]
         impl<$($ty: Fetch),*> Match for ($($ty,)*) {
             type Item<'a> = ($($ty::Item<'a>,)*);
             type Output<'a> = ($($ty::Output<'a>,)*);
 
-            #[allow(non_snake_case)]
-            #[allow(unused_variables)]
             fn match_columns(arch: &Archetype) -> Option<Self::Output<'_>> {
                 $(
-                    let $ty = $ty::fetch(arch)?;
+                    let $ty = $ty::fetch_column(arch)?;
                 )*
 
                 Some(($($ty,)*))
+            }
+
+            fn extract_row<'a>(output: &Self::Output<'a>) -> Option<Self::Item<'a>> {
+                let ($($ty,)*) = output;
+
+                unimplemented!();
             }
         }
     };

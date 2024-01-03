@@ -6,9 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-videoland_rhi = { path = "../videoland_rhi" }
-videoland_egui = { path = "../videoland_egui" }
+videoland_ap = { path = "../videoland_ap" }
 videoland_ecs = { path = "../videoland_ecs" }
+videoland_egui = { path = "../videoland_egui" }
+videoland_rhi = { path = "../videoland_rhi" }
 
 ahash = { workspace = true }
 bitflags = "2.4.1"

@@ -6,15 +6,7 @@ use videoland::{App, AppInfo};
 
 mod control;
 
-fn add_stuff_to_world(registry: &mut Registry, loader: &Loader) {
-    // let sponza = world.spawn((Transform {
-    //     position: Vec3::ZERO,
-    //     rotation: Quat::IDENTITY,
-    // },));
-    // loader.load_and_attach_model_sync(sponza, "models/sponza.obj");
-}
-
-fn test(input_state: Res<InputState>, q: Query<(&i32, &mut String)>) {
+fn test(input_state: Res<InputState>) {
     if input_state.is_key_pressed(KeyCode::KeyW) {
         println!("W pressed");
     }
