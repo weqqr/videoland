@@ -3,7 +3,6 @@
 
 pub mod camera;
 pub mod domain;
-pub mod geometry;
 pub mod input;
 pub mod settings;
 pub mod timing;

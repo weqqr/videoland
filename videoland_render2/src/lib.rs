@@ -1,11 +1,11 @@
 use ahash::AHashMap;
 use glam::Mat4;
-use rhi::VertexBufferLayout;
 use uuid::Uuid;
+use videoland_ap::model::Vertex;
 use videoland_ap::shader::Shader;
 use videoland_ecs::Registry;
-use winit::window::Window;
 use videoland_rhi as rhi;
+use winit::window::Window;
 
 // use crate::camera::Camera;
 // use crate::geometry::Vertex;
@@ -131,10 +131,32 @@ impl Renderer {
             .create_pipeline(&rhi::PipelineDesc {
                 vertex: &vs,
                 fragment: &fs,
-                vertex_layout: VertexBufferLayout{
-                    attributes: &[],
-                    stride: 0,
-                }, //Vertex::layout(),
+                vertex_layout: rhi::VertexBufferLayout {
+                    stride: 8 * 4,
+                    attributes: &[
+                        // position
+                        rhi::VertexAttribute {
+                            binding: 0,
+                            format: rhi::VertexFormat::Float32x3,
+                            offset: 0,
+                            location: 0,
+                        },
+                        // normal
+                        rhi::VertexAttribute {
+                            binding: 0,
+                            format: rhi::VertexFormat::Float32x3,
+                            offset: 3 * 4,
+                            location: 1,
+                        },
+                        // texcoord
+                        rhi::VertexAttribute {
+                            binding: 0,
+                            format: rhi::VertexFormat::Float32x2,
+                            offset: 6 * 4,
+                            location: 2,
+                        },
+                    ],
+                },
             })
             .unwrap();
 

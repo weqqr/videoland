@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::shader::{Shader, ShaderCompiler, ShaderStage};
 
+pub mod model;
 pub mod shader;
 
 pub struct Vfs {

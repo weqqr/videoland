@@ -7,8 +7,11 @@ edition = "2021"
 
 [dependencies]
 bytemuck = { workspace = true }
+glam = { workspace = true }
 hassle-rs = "0.10.0"
+obj = "0.10.2"
 thiserror = { workspace = true }
+uuid = { workspace = true }
 
 [lints]
 workspace = true

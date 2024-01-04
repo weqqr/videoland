@@ -1,8 +1,30 @@
-use videoland_rhi as rhi;
 use std::io::Cursor;
 
 use glam::{Vec2, Vec3};
 use uuid::Uuid;
+
+#[derive(Clone, Copy)]
+pub enum VertexFormat {
+    Float32x1,
+    Float32x2,
+    Float32x3,
+    Float32x4,
+}
+
+#[derive(Clone)]
+pub struct VertexAttribute {
+    pub binding: u32,
+    pub location: u32,
+    pub offset: u32,
+    pub format: VertexFormat,
+}
+
+#[derive(Clone)]
+pub struct VertexLayout<'a> {
+    pub attributes: &'a [VertexAttribute],
+    pub stride: u32,
+}
+
 
 pub struct Vertex {
     pub position: Vec3,
@@ -17,28 +39,28 @@ impl Vertex {
         data.extend_from_slice(&self.texcoord.to_array());
     }
 
-    pub fn layout() -> rhi::VertexBufferLayout<'static> {
-        rhi::VertexBufferLayout {
+    pub fn layout() -> VertexLayout<'static> {
+        VertexLayout {
             stride: 8 * 4,
             attributes: &[
                 // position
-                rhi::VertexAttribute {
+                VertexAttribute {
                     binding: 0,
-                    format: rhi::VertexFormat::Float32x3,
+                    format: VertexFormat::Float32x3,
                     offset: 0,
                     location: 0,
                 },
                 // normal
-                rhi::VertexAttribute {
+                VertexAttribute {
                     binding: 0,
-                    format: rhi::VertexFormat::Float32x3,
+                    format: VertexFormat::Float32x3,
                     offset: 3 * 4,
                     location: 1,
                 },
                 // texcoord
-                rhi::VertexAttribute {
+                VertexAttribute {
                     binding: 0,
-                    format: rhi::VertexFormat::Float32x2,
+                    format: VertexFormat::Float32x2,
                     offset: 6 * 4,
                     location: 2,
                 },
