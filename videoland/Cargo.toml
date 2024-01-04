@@ -9,6 +9,7 @@ edition = "2021"
 videoland_ap = { path = "../videoland_ap" }
 videoland_ecs = { path = "../videoland_ecs" }
 videoland_egui = { path = "../videoland_egui" }
+videoland_render2 = { path = "../videoland_render2" }
 videoland_rhi = { path = "../videoland_rhi" }
 
 ahash = { workspace = true }
@@ -16,7 +17,7 @@ bitflags = "2.4.1"
 bytemuck = { workspace = true, features = ["derive"] }
 egui = { workspace = true }
 egui-winit = "0.24.1"
-glam = { version = "0.24.2", features = ["bytemuck"] }
+glam = { workspace = true, features = ["bytemuck"] }
 indexmap = "2.0.2"
 mlua = { version = "0.9.1", features = ["luau"] }
 obj = "0.10.2"
@@ -28,7 +29,7 @@ serde_json = "1.0.107"
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = "0.3.17"
-uuid = { version = "1.4.1", features = ["v4"] }
+uuid = { workspace = true, features = ["v4"] }
 winit = { version = "0.29.3", features = ["rwh_05"] }
 
 [features]

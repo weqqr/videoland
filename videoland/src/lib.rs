@@ -5,15 +5,14 @@ pub mod camera;
 pub mod domain;
 pub mod geometry;
 pub mod input;
-pub mod render2;
 pub mod settings;
 pub mod timing;
 pub mod ui;
 
-use ap::shader::ShaderStage;
 pub use glam as math;
 pub use videoland_ap as ap;
 pub use videoland_ecs as ecs;
+pub use videoland_render2 as render2;
 pub use winit;
 
 use std::sync::Arc;
@@ -28,6 +27,7 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
+use crate::ap::shader::ShaderStage;
 use crate::ap::Vfs;
 use crate::camera::Camera;
 use crate::input::InputState;
@@ -133,7 +133,7 @@ impl AppState {
         let camera = &Camera::new();
 
         self.renderer
-            .render(&self.reg, extent, camera, self.material);
+            .render(&self.reg, extent, /*camera,*/ self.material);
     }
 
     fn prepare_stats(&self) -> IndexMap<String, String> {

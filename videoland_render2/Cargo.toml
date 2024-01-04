@@ -1,0 +1,20 @@
+[package]
+name = "videoland_render2"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+videoland_ap = { path = "../videoland_ap" }
+videoland_ecs = { path = "../videoland_ecs" }
+videoland_rhi = { path = "../videoland_rhi" }
+
+ahash = { workspace = true }
+bytemuck = { workspace = true, features = ["derive"] }
+glam = { workspace = true, features = ["bytemuck"] }
+uuid = { workspace = true, features = ["v4"] }
+winit = { workspace = true, features = ["rwh_05"] }
+
+[lints]
+workspace = true

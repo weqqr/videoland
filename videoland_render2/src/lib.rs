@@ -1,16 +1,14 @@
-#![allow(dead_code)]
-#![allow(clippy::new_without_default)]
-
 use ahash::AHashMap;
 use glam::Mat4;
+use rhi::VertexBufferLayout;
 use uuid::Uuid;
 use videoland_ap::shader::Shader;
 use videoland_ecs::Registry;
 use winit::window::Window;
 use videoland_rhi as rhi;
 
-use crate::camera::Camera;
-use crate::geometry::Vertex;
+// use crate::camera::Camera;
+// use crate::geometry::Vertex;
 
 #[derive(Clone, Copy)]
 pub struct Extent2D {
@@ -133,7 +131,10 @@ impl Renderer {
             .create_pipeline(&rhi::PipelineDesc {
                 vertex: &vs,
                 fragment: &fs,
-                vertex_layout: Vertex::layout(),
+                vertex_layout: VertexBufferLayout{
+                    attributes: &[],
+                    stride: 0,
+                }, //Vertex::layout(),
             })
             .unwrap();
 
@@ -236,7 +237,7 @@ impl Renderer {
         &mut self,
         world: &Registry,
         viewport_extent: Extent2D,
-        camera: &Camera,
+        // camera: &Camera,
         material: Uuid,
     ) {
         let frame = self.device.acquire_next_image();
