@@ -25,7 +25,6 @@ pub struct VertexLayout<'a> {
     pub stride: u32,
 }
 
-
 pub struct Vertex {
     pub position: Vec3,
     pub normal: Vec3,

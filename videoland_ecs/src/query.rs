@@ -1,9 +1,12 @@
+use std::any::{Any, TypeId};
 use std::cell::{Ref, RefMut};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
+use ahash::{AHashMap, AHashSet};
+
 use crate::exec::SystemParam;
-use crate::{Archetype, Column, ColumnMut, Registry};
+use crate::Registry;
 
 pub struct Res<'a, T: 'static> {
     value: Ref<'a, T>,
@@ -55,107 +58,129 @@ impl<'a, T> DerefMut for ResMut<'a, T> {
     }
 }
 
-pub trait Fetch {
-    type Item<'a>;
-    type Output<'a>;
+//
+//
+//
 
-    fn fetch_column(archetype: &Archetype) -> Option<Self::Output<'_>>;
+pub type UntypedColumn = Box<dyn Any>;
+
+pub struct Archetype {
+    component_types: AHashSet<TypeId>,
+    component_columns: AHashMap<TypeId, UntypedColumn>,
+}
+
+impl Archetype {
+    pub fn new(types: AHashSet<TypeId>) -> Self {
+        Self {
+            component_types: types,
+            component_columns: AHashMap::new(),
+        }
+    }
+
+    pub fn has(&self, ty: TypeId) -> bool {
+        self.component_types.contains(&ty)
+    }
+
+    pub fn column<T: 'static>(&self) -> Col<T> {
+        Col {
+            inner: self
+                .component_columns
+                .get(&TypeId::of::<T>())
+                .unwrap()
+                .downcast_ref()
+                .unwrap(),
+        }
+    }
+}
+
+pub struct Col<'a, T> {
+    inner: &'a Vec<T>,
+}
+
+impl<'a, T> Column for Col<'a, T> {
+    type Item = &'a T;
+
+    fn component_by_id(&self, id: usize) -> Option<Self::Item> {
+        self.inner.get(id)
+    }
+}
+
+pub struct Query<M: Matcher> {
+    archetypes: Vec<Archetype>,
+    _pd: PhantomData<fn() -> M>,
+}
+
+impl<M: Matcher> Query<M> {
+    fn iter(&mut self) -> impl Iterator<Item = M::Row<'_>> + '_ {
+        self.archetypes
+            .iter()
+            .filter(|archetype| M::matches(archetype))
+            .flat_map(|archetype| M::iter(archetype))
+    }
+}
+
+pub trait Matcher {
+    type Row<'a>;
+
+    fn matches(archetype: &Archetype) -> bool;
+    fn iter(archetype: &Archetype) -> impl Iterator<Item = Self::Row<'_>>;
+}
+
+impl<A: Fetch, B: Fetch> Matcher for (A, B) {
+    type Row<'a> = (A::ItemRef<'a>, B::ItemRef<'a>);
+
+    fn matches(archetype: &Archetype) -> bool {
+        archetype.has(TypeId::of::<A::Item>()) && archetype.has(TypeId::of::<B::Item>())
+    }
+
+    fn iter(archetype: &Archetype) -> impl Iterator<Item = Self::Row<'_>> {
+        MatchedRows {
+            tuple: (A::fetch_column(archetype), B::fetch_column(archetype)),
+            index: 0,
+        }
+    }
+}
+
+pub struct MatchedRows<T> {
+    tuple: T,
+    index: usize,
+}
+
+impl<A: Column, B: Column> Iterator for MatchedRows<(A, B)> {
+    type Item = (A::Item, B::Item);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let tuple = (
+            self.tuple.0.component_by_id(self.index)?,
+            self.tuple.1.component_by_id(self.index)?,
+        );
+
+        self.index += 1;
+
+        Some(tuple)
+    }
+}
+
+pub trait Fetch {
+    type Item: 'static;
+    type ItemRef<'a>;
+    type Column<'a>: Column<Item = Self::ItemRef<'a>>;
+
+    fn fetch_column(archetype: &Archetype) -> Self::Column<'_>;
 }
 
 impl<T: 'static> Fetch for &T {
-    type Item<'a> = &'a T;
-    type Output<'a> = Column<'a, T>;
+    type Item = T;
+    type ItemRef<'a> = &'a T;
+    type Column<'a> = Col<'a, T>;
 
-    fn fetch_column(archetype: &Archetype) -> Option<Self::Output<'_>> {
-        archetype.get_component_column_by_type::<T>()
+    fn fetch_column(archetype: &Archetype) -> Self::Column<'_> {
+        archetype.column::<T>()
     }
 }
 
-impl<T: 'static> Fetch for &mut T {
-    type Item<'a> = &'a mut T;
-    type Output<'a> = ColumnMut<'a, T>;
+pub trait Column {
+    type Item;
 
-    fn fetch_column(archetype: &Archetype) -> Option<Self::Output<'_>> {
-        archetype.get_component_column_mut_by_type::<T>()
-    }
+    fn component_by_id(&self, id: usize) -> Option<Self::Item>;
 }
-
-pub struct Query<'a, M: Match> {
-    archetypes: &'a Vec<Archetype>,
-    current_archetype: usize,
-    columns: Option<M::Output<'a>>,
-    _pd: PhantomData<M>,
-}
-
-impl<'a, M: Match> SystemParam for Query<'a, M> {
-    type Item<'w> = Query<'w, M>;
-
-    fn get(reg: &Registry) -> Self::Item<'_> {
-        Query {
-            archetypes: reg.archetypes(),
-            current_archetype: 0,
-            columns: None,
-            _pd: PhantomData,
-        }
-    }
-}
-
-impl<'a, M: Match> Iterator for Query<'a, M> {
-    type Item = M::Item<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let archetype = self.archetypes.get(self.current_archetype)?;
-
-
-        unimplemented!()
-    }
-}
-
-pub trait Match: Sized {
-    type Item<'a>;
-    type Output<'a>;
-
-    fn match_columns(arch: &Archetype) -> Option<Self::Output<'_>>;
-    fn extract_row<'a>(arch: &Self::Output<'a>) -> Option<Self::Item<'a>>;
-}
-
-macro_rules! impl_match_for_fetch_tuple {
-    ($($ty:ident),*) => {
-        #[allow(non_snake_case)]
-        #[allow(unused_variables)]
-        impl<$($ty: Fetch),*> Match for ($($ty,)*) {
-            type Item<'a> = ($($ty::Item<'a>,)*);
-            type Output<'a> = ($($ty::Output<'a>,)*);
-
-            fn match_columns(arch: &Archetype) -> Option<Self::Output<'_>> {
-                $(
-                    let $ty = $ty::fetch_column(arch)?;
-                )*
-
-                Some(($($ty,)*))
-            }
-
-            fn extract_row<'a>(output: &Self::Output<'a>) -> Option<Self::Item<'a>> {
-                let ($($ty,)*) = output;
-
-                unimplemented!();
-            }
-        }
-    };
-}
-
-impl_match_for_fetch_tuple!();
-impl_match_for_fetch_tuple!(A);
-impl_match_for_fetch_tuple!(A, B);
-impl_match_for_fetch_tuple!(A, B, C);
-impl_match_for_fetch_tuple!(A, B, C, D);
-impl_match_for_fetch_tuple!(A, B, C, D, E);
-impl_match_for_fetch_tuple!(A, B, C, D, E, F);
-impl_match_for_fetch_tuple!(A, B, C, D, E, F, G);
-impl_match_for_fetch_tuple!(A, B, C, D, E, F, G, H);
-impl_match_for_fetch_tuple!(A, B, C, D, E, F, G, H, I);
-impl_match_for_fetch_tuple!(A, B, C, D, E, F, G, H, I, J);
-impl_match_for_fetch_tuple!(A, B, C, D, E, F, G, H, I, J, K);
-impl_match_for_fetch_tuple!(A, B, C, D, E, F, G, H, I, J, K, L);
-impl_match_for_fetch_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M);
-impl_match_for_fetch_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
