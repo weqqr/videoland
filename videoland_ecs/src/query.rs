@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use ahash::{AHashMap, AHashSet};
 
 use crate::exec::SystemParam;
-use crate::Registry;
+use crate::{expand_macro_staircase, Registry};
 
 pub struct Res<'a, T: 'static> {
     value: Ref<'a, T>,
@@ -90,6 +90,12 @@ impl Archetype {
     }
 }
 
+pub trait Column {
+    type Item;
+
+    fn component_by_id(&self, id: usize) -> Option<Self::Item>;
+}
+
 pub struct Col<'a, T> {
     inner: &'a UnsafeCell<Vec<T>>,
 }
@@ -146,40 +152,56 @@ pub trait Matcher {
     fn iter(archetype: &Archetype) -> impl Iterator<Item = Self::Row<'_>>;
 }
 
-impl<A: Fetch, B: Fetch> Matcher for (A, B) {
-    type Row<'a> = (A::ItemRef<'a>, B::ItemRef<'a>);
+macro_rules! impl_matcher_for_tuple {
+    ($($ty:ident),*) => {
+        impl<$($ty: Fetch),*> Matcher for ($($ty,)*) {
+            type Row<'a> = ($($ty::ItemRef<'a>,)*);
 
-    fn matches(archetype: &Archetype) -> bool {
-        archetype.has(TypeId::of::<A::Item>()) && archetype.has(TypeId::of::<B::Item>())
-    }
+            fn matches(archetype: &Archetype) -> bool {
+                $(archetype.has(TypeId::of::<$ty::Item>()))&&*
+            }
 
-    fn iter(archetype: &Archetype) -> impl Iterator<Item = Self::Row<'_>> {
-        MatchedRows {
-            tuple: (A::fetch_column(archetype), B::fetch_column(archetype)),
-            index: 0,
+            fn iter(archetype: &Archetype) -> impl Iterator<Item = Self::Row<'_>> {
+                MatchedRows {
+                    tuple: ($($ty::fetch_column(archetype),)*),
+                    index: 0,
+                }
+            }
         }
-    }
+    };
 }
+
+expand_macro_staircase!(impl_matcher_for_tuple A, B, C, D, E, F, G, H, I, J, K, L, M, N);
 
 pub struct MatchedRows<T> {
     tuple: T,
     index: usize,
 }
 
-impl<A: Column, B: Column> Iterator for MatchedRows<(A, B)> {
-    type Item = (A::Item, B::Item);
+macro_rules! impl_iterator_for_matched_rows {
+    ($($ty:ident),*) => {
+        impl<$($ty: Column),*> Iterator for MatchedRows<($($ty,)*)> {
+            type Item = ($($ty::Item,)*);
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let tuple = (
-            self.tuple.0.component_by_id(self.index)?,
-            self.tuple.1.component_by_id(self.index)?,
-        );
+            #[allow(non_snake_case)]
+            fn next(&mut self) -> Option<Self::Item> {
+                let ($($ty,)*) = &self.tuple;
 
-        self.index += 1;
+                let tuple = (
+                    $(
+                        $ty.component_by_id(self.index)?,
+                    )*
+                );
 
-        Some(tuple)
-    }
+                self.index += 1;
+
+                Some(tuple)
+            }
+        }
+    };
 }
+
+expand_macro_staircase!(impl_iterator_for_matched_rows A, B, C, D, E, F, G, H, I, J, K, L, M, N);
 
 pub trait Fetch {
     type Item: 'static;
@@ -211,10 +233,4 @@ impl<T: 'static> Fetch for &mut T {
             inner: archetype.column::<T>(),
         }
     }
-}
-
-pub trait Column {
-    type Item;
-
-    fn component_by_id(&self, id: usize) -> Option<Self::Item>;
 }

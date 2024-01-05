@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::Registry;
+use crate::{expand_macro_staircase, Registry};
 
 pub struct SystemFn<F, FnParams> {
     func: F,
@@ -76,6 +76,8 @@ macro_rules! impl_system_for_systemfn {
     };
 }
 
+expand_macro_staircase!(impl_system_for_systemfn A, B, C, D, E, F, G, H, I, J, K, L, M, N);
+
 macro_rules! impl_into_system_for_fn {
     ($($ts:ident),*) => {
         impl<Func, $($ts,)*> IntoSystem<($($ts,)*), SystemFn<Self, ($($ts,)*)>> for Func
@@ -93,34 +95,4 @@ macro_rules! impl_into_system_for_fn {
     }
 }
 
-impl_system_for_systemfn!();
-impl_system_for_systemfn!(A);
-impl_system_for_systemfn!(A, B);
-impl_system_for_systemfn!(A, B, C);
-impl_system_for_systemfn!(A, B, C, D);
-impl_system_for_systemfn!(A, B, C, D, E);
-impl_system_for_systemfn!(A, B, C, D, E, F);
-impl_system_for_systemfn!(A, B, C, D, E, F, G);
-impl_system_for_systemfn!(A, B, C, D, E, F, G, H);
-impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I);
-impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J);
-impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J, K);
-impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J, K, L);
-impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J, K, L, M);
-impl_system_for_systemfn!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
-
-impl_into_system_for_fn!();
-impl_into_system_for_fn!(A);
-impl_into_system_for_fn!(A, B);
-impl_into_system_for_fn!(A, B, C);
-impl_into_system_for_fn!(A, B, C, D);
-impl_into_system_for_fn!(A, B, C, D, E);
-impl_into_system_for_fn!(A, B, C, D, E, F);
-impl_into_system_for_fn!(A, B, C, D, E, F, G);
-impl_into_system_for_fn!(A, B, C, D, E, F, G, H);
-impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I);
-impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J);
-impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J, K);
-impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J, K, L);
-impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J, K, L, M);
-impl_into_system_for_fn!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
+expand_macro_staircase!(impl_into_system_for_fn A, B, C, D, E, F, G, H, I, J, K, L, M, N);

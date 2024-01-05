@@ -53,3 +53,17 @@ impl Registry {
         RefMut::map(r, |x| x.downcast_mut().unwrap())
     }
 }
+
+#[macro_export]
+macro_rules! expand_macro_staircase {
+    ($m:ident) => {
+        $m!();
+    };
+    ($m:ident $ty:ident) => {
+        $m!($ty);
+    };
+    ($m:ident $ty:ident, $($tys:ident),*) => {
+        $m!($ty, $($tys),*);
+        expand_macro_staircase!($m $($tys),*);
+    };
+}
