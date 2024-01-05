@@ -1,5 +1,5 @@
 use std::any::{Any, TypeId};
-use std::cell::{Ref, RefMut};
+use std::cell::{Ref, RefMut, UnsafeCell};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
@@ -81,37 +81,57 @@ impl Archetype {
         self.component_types.contains(&ty)
     }
 
-    pub fn column<T: 'static>(&self) -> Col<T> {
-        Col {
-            inner: self
-                .component_columns
-                .get(&TypeId::of::<T>())
-                .unwrap()
-                .downcast_ref()
-                .unwrap(),
-        }
+    pub fn column<T: 'static>(&self) -> &UnsafeCell<Vec<T>> {
+        self.component_columns
+            .get(&TypeId::of::<T>())
+            .unwrap()
+            .downcast_ref()
+            .unwrap()
     }
 }
 
 pub struct Col<'a, T> {
-    inner: &'a Vec<T>,
+    inner: &'a UnsafeCell<Vec<T>>,
 }
 
 impl<'a, T> Column for Col<'a, T> {
     type Item = &'a T;
 
     fn component_by_id(&self, id: usize) -> Option<Self::Item> {
-        self.inner.get(id)
+        unsafe { (*self.inner.get()).get(id) }
     }
 }
 
-pub struct Query<M: Matcher> {
-    archetypes: Vec<Archetype>,
+pub struct ColMut<'a, T> {
+    inner: &'a UnsafeCell<Vec<T>>,
+}
+
+impl<'a, T> Column for ColMut<'a, T> {
+    type Item = &'a mut T;
+
+    fn component_by_id(&self, id: usize) -> Option<Self::Item> {
+        unsafe { (*self.inner.get()).get_mut(id) }
+    }
+}
+
+pub struct Query<'a, M: Matcher> {
+    archetypes: &'a Vec<Archetype>,
     _pd: PhantomData<fn() -> M>,
 }
 
-impl<M: Matcher> Query<M> {
-    fn iter(&mut self) -> impl Iterator<Item = M::Row<'_>> + '_ {
+impl<'a, M: Matcher> SystemParam for Query<'a, M> {
+    type Item<'w> = Query<'w, M>;
+
+    fn get(reg: &Registry) -> Self::Item<'_> {
+        Query {
+            archetypes: &reg.archetypes,
+            _pd: PhantomData,
+        }
+    }
+}
+
+impl<'a, M: Matcher> Query<'a, M> {
+    pub fn iter(&self) -> impl Iterator<Item = M::Row<'_>> + '_ {
         self.archetypes
             .iter()
             .filter(|archetype| M::matches(archetype))
@@ -175,7 +195,21 @@ impl<T: 'static> Fetch for &T {
     type Column<'a> = Col<'a, T>;
 
     fn fetch_column(archetype: &Archetype) -> Self::Column<'_> {
-        archetype.column::<T>()
+        Col {
+            inner: archetype.column::<T>(),
+        }
+    }
+}
+
+impl<T: 'static> Fetch for &mut T {
+    type Item = T;
+    type ItemRef<'a> = &'a mut T;
+    type Column<'a> = ColMut<'a, T>;
+
+    fn fetch_column(archetype: &Archetype) -> Self::Column<'_> {
+        ColMut {
+            inner: archetype.column::<T>(),
+        }
     }
 }
 

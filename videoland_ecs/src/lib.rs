@@ -13,12 +13,14 @@ use ahash::HashMap;
 
 pub struct Registry {
     resources: HashMap<TypeId, Box<RefCell<dyn Any>>>,
+    archetypes: Vec<Archetype>,
 }
 
 impl Registry {
     pub fn new() -> Self {
         Self {
             resources: HashMap::default(),
+            archetypes: Vec::new(),
         }
     }
 

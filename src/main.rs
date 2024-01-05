@@ -1,13 +1,18 @@
-use videoland::ecs::{Res, Schedule};
+use videoland::ecs::{Res, Schedule, Query};
 use videoland::input::InputState;
 use videoland::winit::keyboard::KeyCode;
 use videoland::{App, AppInfo};
 
 mod control;
 
-fn test(input_state: Res<InputState>) {
+fn test(input_state: Res<InputState>, q: Query<(&String, &mut i32)>) {
     if input_state.is_key_pressed(KeyCode::KeyW) {
         println!("W pressed");
+    }
+
+    for (string, int) in q.iter() {
+        *int = 51;
+        println!("{string}");
     }
 }
 
