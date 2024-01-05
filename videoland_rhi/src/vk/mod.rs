@@ -16,10 +16,10 @@ pub enum Error {
     Vulkan(#[from] ash::vk::Result),
 
     #[error("Vulkan loading error: {0}")]
-    LoadingError(#[from] ash::LoadingError),
+    Loading(#[from] ash::LoadingError),
 
     #[error("memory allocation error: {0}")]
-    AllocationError(#[from] gpu_alloc::AllocationError),
+    Allocation(#[from] gpu_alloc::AllocationError),
 }
 
 pub struct Instance {
@@ -478,11 +478,14 @@ impl Device {
             .wait_semaphore_values(wait_values)
             .signal_semaphore_values(signal_values);
 
+        let mask = &[vk::PipelineStageFlags::ALL_COMMANDS];
+        let command_buffers = &[command_buffer.command_buffer];
+
         let submit_info = vk::SubmitInfo::builder()
             .wait_semaphores(wait_semaphores)
-            .wait_dst_stage_mask(&[vk::PipelineStageFlags::ALL_COMMANDS])
+            .wait_dst_stage_mask(mask)
             .signal_semaphores(signal_semaphores)
-            .command_buffers(&[command_buffer.command_buffer])
+            .command_buffers(command_buffers)
             .push_next(&mut timeline_info)
             .build();
 
