@@ -19,6 +19,7 @@ fn test(input_state: Res<InputState>, q: Query<(&String, &mut i32)>) {
 fn main() {
     let mut schedule = Schedule::new();
     schedule.add_system(test);
+    schedule.add_system(videoland::render);
     // schedule.add_system(control::move_player);
 
     let app_info = AppInfo {

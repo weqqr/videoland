@@ -10,6 +10,12 @@ edition = "2021"
 videoland = { path = "videoland" }
 
 [workspace.dependencies]
+videoland_ap = { path = "videoland_ap" }
+videoland_ecs = { path = "videoland_ecs" }
+videoland_egui = { path = "videoland_egui" }
+videoland_render2 = { path = "videoland_render2" }
+videoland_rhi = { path = "videoland_rhi" }
+
 egui = { git = "https://github.com/emilk/egui", rev = "bfed2b41" }
 egui-winit = { git = "https://github.com/emilk/egui", rev = "bfed2b41" }
 ahash = "0.8.6"

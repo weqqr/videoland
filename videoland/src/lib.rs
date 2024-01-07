@@ -29,14 +29,27 @@ use winit::window::{CursorGrabMode, Window, WindowBuilder};
 use crate::ap::shader::ShaderStage;
 use crate::ap::Vfs;
 use crate::camera::Camera;
+use crate::ecs::{Res, ResMut};
 use crate::input::InputState;
 use crate::render2::{Extent2D, MaterialDesc, Renderer};
 use crate::settings::Settings;
 use crate::timing::Timings;
-use crate::ui::{RenderedUi, Ui};
+use crate::ui::Ui;
+
+pub fn render(window: Res<Window>, mut renderer: ResMut<Renderer>) {
+    let window_size = window.inner_size();
+
+    let extent = Extent2D {
+        width: window_size.width,
+        height: window_size.height,
+    };
+
+    let camera = &Camera::new();
+
+    renderer.render(extent);
+}
 
 struct AppState {
-    renderer: Renderer,
     material: Uuid,
     reg: Registry,
     schedule: Schedule,
@@ -79,9 +92,9 @@ impl AppState {
         reg.insert(window);
         reg.insert(vfs);
         reg.insert(settings);
+        reg.insert(renderer);
 
         Self {
-            renderer,
             material,
             reg,
             schedule,
@@ -108,7 +121,7 @@ impl AppState {
         match event {
             WindowEvent::CloseRequested => return EventLoopIterationDecision::Break,
             WindowEvent::KeyboardInput { event, .. } => return self.handle_key(event),
-            WindowEvent::Resized(size) => self.renderer.resize(Extent2D {
+            WindowEvent::Resized(size) => self.reg.res_mut::<Renderer>().resize(Extent2D {
                 width: size.width,
                 height: size.height,
             }),
@@ -122,20 +135,6 @@ impl AppState {
         self.reg.res_mut::<InputState>().submit_device_input(&event);
 
         EventLoopIterationDecision::Continue
-    }
-
-    pub(crate) fn render(&mut self, _rendered_ui: RenderedUi) {
-        let window_size = self.reg.res::<Window>().inner_size();
-
-        let extent = Extent2D {
-            width: window_size.width,
-            height: window_size.height,
-        };
-
-        let camera = &Camera::new();
-
-        self.renderer
-            .render(&self.reg, extent, /*camera,*/ self.material);
     }
 
     fn prepare_stats(&self) -> IndexMap<String, String> {
@@ -171,7 +170,7 @@ impl AppState {
         self.schedule.execute(&self.reg);
         // self.loader.poll(&mut self.reg);
         // self.renderer.upload_meshes(&mut self.world);
-        self.render(rendered_ui);
+        // self.render(rendered_ui);
         self.reg.res_mut::<InputState>().reset_mouse_movement();
 
         EventLoopIterationDecision::Continue

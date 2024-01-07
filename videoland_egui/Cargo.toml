@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 egui = { workspace = true }
+videoland_rhi = { workspace = true }

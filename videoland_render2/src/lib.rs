@@ -257,10 +257,7 @@ impl Renderer {
 
     pub fn render(
         &mut self,
-        world: &Registry,
         viewport_extent: Extent2D,
-        // camera: &Camera,
-        material: Uuid,
     ) {
         let frame = self.device.acquire_next_image();
         let frame_image = frame.image_view();
@@ -282,9 +279,9 @@ impl Renderer {
 
         command_buffer.set_viewport(viewport_extent);
 
-        let material = self.materials.get(&material).unwrap();
+        // let material = self.materials.get(&material).unwrap();
 
-        command_buffer.bind_pipeline(&material.pipeline);
+        // command_buffer.bind_pipeline(&material.pipeline);
 
         // for (e, (transform, mesh)) in world.query::<(&Transform, &RenderableMesh)>().iter() {
         //     let pc = PushConstants {
