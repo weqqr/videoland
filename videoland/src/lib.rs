@@ -5,6 +5,7 @@ pub mod camera;
 pub mod domain;
 pub mod input;
 pub mod settings;
+pub mod sys;
 pub mod timing;
 pub mod ui;
 
@@ -29,25 +30,12 @@ use winit::window::{CursorGrabMode, Window, WindowBuilder};
 use crate::ap::shader::ShaderStage;
 use crate::ap::Vfs;
 use crate::camera::Camera;
-use crate::ecs::{Res, ResMut};
+use crate::ecs::{Res, ResMut, EventQueue, Events};
 use crate::input::InputState;
 use crate::render2::{Extent2D, MaterialDesc, Renderer};
 use crate::settings::Settings;
 use crate::timing::Timings;
 use crate::ui::Ui;
-
-pub fn render(window: Res<Window>, mut renderer: ResMut<Renderer>) {
-    let window_size = window.inner_size();
-
-    let extent = Extent2D {
-        width: window_size.width,
-        height: window_size.height,
-    };
-
-    let camera = &Camera::new();
-
-    renderer.render(extent);
-}
 
 struct AppState {
     material: Uuid,
@@ -69,6 +57,8 @@ impl AppState {
         ui.begin_frame(&window);
 
         let mut reg = Registry::new();
+
+        reg.insert(EventQueue::<KeyEvent>::new());
 
         let vertex_shader = &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Vertex);
         let fragment_shader = &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Fragment);
@@ -102,14 +92,6 @@ impl AppState {
         }
     }
 
-    fn handle_key(&mut self, input: KeyEvent) -> EventLoopIterationDecision {
-        if let Key::Named(NamedKey::Escape) = input.logical_key {
-            return EventLoopIterationDecision::Break;
-        }
-
-        EventLoopIterationDecision::Continue
-    }
-
     fn handle_window_event(&mut self, event: WindowEvent) -> EventLoopIterationDecision {
         {
             let window = self.reg.res::<Window>();
@@ -120,7 +102,9 @@ impl AppState {
 
         match event {
             WindowEvent::CloseRequested => return EventLoopIterationDecision::Break,
-            WindowEvent::KeyboardInput { event, .. } => return self.handle_key(event),
+            WindowEvent::KeyboardInput { event, .. } => {
+                self.reg.res_mut::<EventQueue<KeyEvent>>().emit(event);
+            },
             WindowEvent::Resized(size) => self.reg.res_mut::<Renderer>().resize(Extent2D {
                 width: size.width,
                 height: size.height,

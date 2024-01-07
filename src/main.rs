@@ -2,6 +2,7 @@ use videoland::ecs::{Res, Schedule, Query};
 use videoland::input::InputState;
 use videoland::winit::keyboard::KeyCode;
 use videoland::{App, AppInfo};
+use videoland::winit::event::KeyEvent;
 
 mod control;
 
@@ -19,7 +20,9 @@ fn test(input_state: Res<InputState>, q: Query<(&String, &mut i32)>) {
 fn main() {
     let mut schedule = Schedule::new();
     schedule.add_system(test);
-    schedule.add_system(videoland::render);
+    schedule.add_system(videoland::sys::handle_input);
+    schedule.add_system(videoland::sys::render);
+    schedule.add_system(videoland::sys::clear_events::<KeyEvent>);
     // schedule.add_system(control::move_player);
 
     let app_info = AppInfo {
