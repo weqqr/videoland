@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 
 use ash::extensions::{ext, khr};
 use ash::vk;
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle, RawWindowHandle};
 use tinyvec::ArrayVec;
 
 #[derive(thiserror::Error, Debug)]
@@ -202,19 +202,33 @@ impl Surface {
     where
         W: HasRawWindowHandle + HasRawDisplayHandle,
     {
-        let display_handle = window.raw_display_handle();
-        let window_handle = window.raw_window_handle();
-
         let surface_ext = khr::Surface::new(entry, instance);
 
-        let surface =
-            ash_window::create_surface(entry, instance, display_handle, window_handle, None)?;
+        let surface = Self::create_surface(entry, instance, window.raw_window_handle())?;
 
         Ok(Self {
             surface_ext,
 
             surface,
         })
+    }
+
+    #[cfg(windows)]
+    unsafe fn create_surface(
+        entry: &ash::Entry,
+        instance: &ash::Instance,
+        window_handle: RawWindowHandle,
+    ) -> Result<vk::SurfaceKHR, Error> {
+        let raw_window_handle::RawWindowHandle::Win32(handle) = window_handle else {
+            panic!("unexpected window handle");
+        };
+
+        let create_info = vk::Win32SurfaceCreateInfoKHR::builder()
+            .hinstance(handle.hinstance)
+            .hwnd(handle.hwnd);
+
+        let win32_surface_ext = khr::Win32Surface::new(entry, instance);
+        Ok(win32_surface_ext.create_win32_surface(&create_info, None)?)
     }
 }
 

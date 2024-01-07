@@ -52,6 +52,23 @@ impl Registry {
             .borrow_mut();
         RefMut::map(r, |x| x.downcast_mut().unwrap())
     }
+
+    pub fn spawn<B: Bundle>(&mut self, components: B) {
+        unimplemented!()
+    }
+}
+
+pub trait Bundle {
+    fn types() -> Vec<TypeId>;
+}
+
+impl<A: 'static, B: 'static> Bundle for (A, B) {
+    fn types() -> Vec<TypeId> {
+        vec![
+            TypeId::of::<A>(),
+            TypeId::of::<B>(),
+        ]
+    }
 }
 
 #[macro_export]
