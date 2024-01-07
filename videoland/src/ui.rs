@@ -26,7 +26,7 @@ fn load_font() -> Vec<u8> {
 impl Ui {
     pub fn new(window: &Window) -> Self {
         let ctx = egui::Context::default();
-        let winit_state = egui_winit::State::new(ctx.viewport_id(), window, None, None);
+        let winit_state = egui_winit::State::new(ctx.clone(), ctx.viewport_id(), window, None, None);
 
         let main = load_font();
 
@@ -79,14 +79,12 @@ impl Ui {
         Self { ctx, winit_state }
     }
 
-    pub fn on_event(&mut self, event: &WindowEvent) {
-        // FIXME: uncomment once egui gets winit 0.29 support
-        // let _ = self.winit_state.on_event(&self.ctx, event);
+    pub fn on_event(&mut self, window: &Window, event: &WindowEvent) {
+        let _ = self.winit_state.on_window_event(window, event);
     }
 
     pub fn begin_frame(&mut self, window: &Window) {
-        // FIXME: uncomment once egui gets winit 0.29 support
-        // let input = self.winit_state.take_egui_input(window);
+        let input = self.winit_state.take_egui_input(window);
         self.ctx.begin_frame(egui::RawInput::default());
     }
 
@@ -113,9 +111,8 @@ impl Ui {
     pub fn finish_frame(&mut self, window: &Window) -> RenderedUi {
         let output = self.ctx.end_frame();
 
-        // FIXME: uncomment once egui gets winit 0.29 support
-        // self.winit_state
-        //     .handle_platform_output(window, &self.ctx, output.platform_output);
+        self.winit_state
+            .handle_platform_output(window, output.platform_output);
         let shapes = self
             .ctx
             .tessellate(output.shapes, window.scale_factor() as f32);

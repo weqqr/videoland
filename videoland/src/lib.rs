@@ -98,7 +98,10 @@ impl AppState {
     }
 
     fn handle_window_event(&mut self, event: WindowEvent) -> EventLoopIterationDecision {
-        self.reg.res_mut::<Ui>().on_event(&event);
+        {
+            let window = self.reg.res::<Window>();
+            self.reg.res_mut::<Ui>().on_event(&window, &event);
+        }
 
         self.reg.res_mut::<InputState>().submit_window_input(&event);
 

@@ -4,7 +4,7 @@
 mod vk;
 
 use bitflags::bitflags;
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::HasWindowHandle;
 use std::sync::RwLock;
 
 #[cfg(feature = "vk")]
@@ -64,7 +64,7 @@ pub struct Device2 {
 impl Device2 {
     pub fn new<W>(window: W) -> Result<Self, Error>
     where
-        W: HasRawDisplayHandle + HasRawWindowHandle,
+        W: HasWindowHandle,
     {
         unsafe {
             let instance = gapi::Instance::new().unwrap();

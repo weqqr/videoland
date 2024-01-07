@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 
 use ash::extensions::{ext, khr};
 use ash::vk;
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle, RawWindowHandle};
+use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use tinyvec::ArrayVec;
 
 #[derive(thiserror::Error, Debug)]
@@ -119,7 +119,7 @@ impl Instance {
 
     pub(super) unsafe fn create_surface<W>(&self, window: W) -> Result<Surface, Error>
     where
-        W: HasRawDisplayHandle + HasRawWindowHandle,
+        W: HasWindowHandle,
     {
         Surface::new(&self.entry, &self.instance, window)
     }
@@ -200,11 +200,11 @@ impl Drop for Surface {
 impl Surface {
     unsafe fn new<W>(entry: &ash::Entry, instance: &ash::Instance, window: W) -> Result<Self, Error>
     where
-        W: HasRawWindowHandle + HasRawDisplayHandle,
+        W: HasWindowHandle,
     {
         let surface_ext = khr::Surface::new(entry, instance);
 
-        let surface = Self::create_surface(entry, instance, window.raw_window_handle())?;
+        let surface = Self::create_surface(entry, instance, window.window_handle().unwrap().as_raw())?;
 
         Ok(Self {
             surface_ext,
@@ -224,8 +224,8 @@ impl Surface {
         };
 
         let create_info = vk::Win32SurfaceCreateInfoKHR::builder()
-            .hinstance(handle.hinstance)
-            .hwnd(handle.hwnd);
+            .hinstance(handle.hinstance.map(|hinstance| hinstance.get() as *const std::ffi::c_void).unwrap_or(std::ptr::null() as *const std::ffi::c_void))
+            .hwnd(handle.hwnd.get() as *const std::ffi::c_void);
 
         let win32_surface_ext = khr::Win32Surface::new(entry, instance);
         Ok(win32_surface_ext.create_win32_surface(&create_info, None)?)
