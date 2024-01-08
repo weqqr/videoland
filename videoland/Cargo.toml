@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 videoland_ap = { workspace = true }
 videoland_ecs = { workspace = true }
-videoland_egui = { workspace = true }
 videoland_render2 = { workspace = true }
 videoland_rhi = { workspace = true }
 

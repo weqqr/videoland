@@ -306,6 +306,14 @@ impl Buffer {
     pub fn write_data(&self, offset: u64, data: &[u8]) {
         unsafe { self.buffer.write().unwrap().write_data(offset, data) }
     }
+
+    pub fn len(&self) -> u64 {
+        self.buffer.read().unwrap().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 pub struct TextureDesc {

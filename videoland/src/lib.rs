@@ -10,6 +10,7 @@ pub mod timing;
 pub mod ui;
 
 pub use glam as math;
+use render2::egui::PreparedUi;
 pub use videoland_ap as ap;
 pub use videoland_ecs as ecs;
 pub use videoland_render2 as render2;
@@ -24,13 +25,11 @@ use videoland_ecs::{Registry, Schedule};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::keyboard::{Key, NamedKey};
 use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
 use crate::ap::shader::ShaderStage;
 use crate::ap::Vfs;
-use crate::camera::Camera;
-use crate::ecs::{Res, ResMut, EventQueue, Events};
+use crate::ecs::EventQueue;
 use crate::input::InputState;
 use crate::render2::{Extent2D, MaterialDesc, Renderer};
 use crate::settings::Settings;
@@ -83,6 +82,7 @@ impl AppState {
         reg.insert(vfs);
         reg.insert(settings);
         reg.insert(renderer);
+        reg.insert(PreparedUi::default());
 
         Self {
             material,
@@ -104,7 +104,7 @@ impl AppState {
             WindowEvent::CloseRequested => return EventLoopIterationDecision::Break,
             WindowEvent::KeyboardInput { event, .. } => {
                 self.reg.res_mut::<EventQueue<KeyEvent>>().emit(event);
-            },
+            }
             WindowEvent::Resized(size) => self.reg.res_mut::<Renderer>().resize(Extent2D {
                 width: size.width,
                 height: size.height,
@@ -135,16 +135,6 @@ impl AppState {
     }
 
     fn update(&mut self) -> EventLoopIterationDecision {
-        let rendered_ui = {
-            let window = self.reg.res::<Window>();
-            let mut ui = self.reg.res_mut::<Ui>();
-
-            let rendered_ui = ui.finish_frame(&window);
-            ui.begin_frame(&window);
-
-            rendered_ui
-        };
-
         {
             let mut timings = self.reg.res_mut::<Timings>();
             timings.advance_frame();
@@ -152,9 +142,7 @@ impl AppState {
         }
 
         self.schedule.execute(&self.reg);
-        // self.loader.poll(&mut self.reg);
-        // self.renderer.upload_meshes(&mut self.world);
-        // self.render(rendered_ui);
+
         self.reg.res_mut::<InputState>().reset_mouse_movement();
 
         EventLoopIterationDecision::Continue

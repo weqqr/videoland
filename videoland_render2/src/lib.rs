@@ -1,14 +1,13 @@
 use ahash::AHashMap;
 use glam::Mat4;
 use uuid::Uuid;
-use videoland_ap::model::Vertex;
 use videoland_ap::shader::Shader;
-use videoland_ecs::Registry;
 use videoland_rhi as rhi;
 use winit::window::Window;
 
-// use crate::camera::Camera;
-// use crate::geometry::Vertex;
+use crate::egui::{EguiRenderer, PreparedUi};
+
+pub mod egui;
 
 #[derive(Clone, Copy)]
 pub struct Extent2D {
@@ -63,6 +62,8 @@ pub struct Renderer {
     depth: rhi::Texture,
     depth_view: rhi::TextureView,
     depth_layout: rhi::TextureLayout,
+
+    egui_renderer: EguiRenderer,
 }
 
 impl Drop for Renderer {
@@ -103,6 +104,8 @@ impl Renderer {
             )
             .unwrap();
 
+        let egui_renderer = EguiRenderer::new(&device, vec![], vec![]);
+
         Self {
             device,
 
@@ -113,6 +116,8 @@ impl Renderer {
             depth,
             depth_view,
             depth_layout: rhi::TextureLayout::Undefined,
+
+            egui_renderer,
         }
     }
 
@@ -258,6 +263,7 @@ impl Renderer {
     pub fn render(
         &mut self,
         viewport_extent: Extent2D,
+        ui: &PreparedUi,
     ) {
         let frame = self.device.acquire_next_image();
         let frame_image = frame.image_view();
@@ -296,6 +302,8 @@ impl Renderer {
         //     command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
         //     command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
         // }
+
+        self.egui_renderer.render(ui);
 
         command_buffer.end_rendering();
 

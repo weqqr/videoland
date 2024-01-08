@@ -1572,7 +1572,6 @@ dependencies = [
  "uuid",
  "videoland_ap",
  "videoland_ecs",
- "videoland_egui",
  "videoland_render2",
  "videoland_rhi",
  "winit",
@@ -1599,19 +1598,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "videoland_egui"
-version = "0.1.0"
-dependencies = [
- "egui",
- "videoland_rhi",
-]
-
-[[package]]
 name = "videoland_render2"
 version = "0.1.0"
 dependencies = [
  "ahash",
  "bytemuck",
+ "egui",
  "glam",
  "uuid",
  "videoland_ap",

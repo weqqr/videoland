@@ -1200,6 +1200,7 @@ pub struct Buffer {
     allocator: Arc<RwLock<gpu_alloc::GpuAllocator<vk::DeviceMemory>>>,
     allocation: Option<gpu_alloc::MemoryBlock<vk::DeviceMemory>>,
     buffer: vk::Buffer,
+    len: u64,
 }
 
 impl Buffer {
@@ -1208,6 +1209,8 @@ impl Buffer {
         allocator: Arc<RwLock<gpu_alloc::GpuAllocator<vk::DeviceMemory>>>,
         allocation: super::BufferAllocation,
     ) -> Result<Self, Error> {
+        let len = allocation.size;
+
         let create_info = vk::BufferCreateInfo::builder()
             .size(allocation.size)
             .usage(usage_to_vk(allocation.usage));
@@ -1235,6 +1238,7 @@ impl Buffer {
             allocator,
             buffer,
             allocation: Some(allocation),
+            len,
         })
     }
 
@@ -1248,6 +1252,10 @@ impl Buffer {
                 data,
             )
             .unwrap();
+    }
+
+    pub(super) fn len(&self) -> u64 {
+        self.len
     }
 }
 

@@ -1,20 +1,16 @@
 use egui::epaint::Shadow;
 use egui::{
-    Align2, ClippedPrimitive, Color32, Context, FontData, FontDefinitions, FontFamily, FontTweak,
-    Frame, Margin, RichText, Rounding, Stroke, TexturesDelta, Vec2,
+    Align2, Color32, Context, FontData, FontDefinitions, FontFamily, FontTweak, Frame, Margin,
+    RichText, Rounding, Stroke, Vec2,
 };
 use indexmap::IndexMap;
+use videoland_render2::egui::PreparedUi;
 use winit::event::WindowEvent;
 use winit::window::Window;
 
 pub struct Ui {
     ctx: egui::Context,
     winit_state: egui_winit::State,
-}
-
-pub struct RenderedUi {
-    pub shapes: Vec<ClippedPrimitive>,
-    pub textures_delta: TexturesDelta,
 }
 
 #[cfg(windows)]
@@ -26,7 +22,8 @@ fn load_font() -> Vec<u8> {
 impl Ui {
     pub fn new(window: &Window) -> Self {
         let ctx = egui::Context::default();
-        let winit_state = egui_winit::State::new(ctx.clone(), ctx.viewport_id(), window, None, None);
+        let winit_state =
+            egui_winit::State::new(ctx.clone(), ctx.viewport_id(), window, None, None);
 
         let main = load_font();
 
@@ -108,7 +105,7 @@ impl Ui {
             });
     }
 
-    pub fn finish_frame(&mut self, window: &Window) -> RenderedUi {
+    pub fn finish_frame(&mut self, window: &Window) -> PreparedUi {
         let output = self.ctx.end_frame();
 
         self.winit_state
@@ -118,7 +115,7 @@ impl Ui {
             .tessellate(output.shapes, window.scale_factor() as f32);
         let textures_delta = output.textures_delta;
 
-        RenderedUi {
+        PreparedUi {
             shapes,
             textures_delta,
         }
