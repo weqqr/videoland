@@ -68,14 +68,6 @@ pub struct Renderer {
 
 impl Drop for Renderer {
     fn drop(&mut self) {
-        for (_, mesh) in self.meshes.drain() {
-            self.device.destroy_buffer(mesh.buffer);
-        }
-
-        for (_, material) in self.materials.drain() {
-            self.device.destroy_pipeline(material.pipeline);
-        }
-
         self.device.destroy_texture_view(&mut self.depth_view);
         self.device.destroy_texture(&mut self.depth);
     }

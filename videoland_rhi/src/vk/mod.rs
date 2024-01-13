@@ -418,7 +418,7 @@ impl Device {
         Pipeline::new(&self.device, desc)
     }
 
-    pub(super) unsafe fn destroy_pipeline(&self, pipeline: Pipeline) {
+    pub(super) unsafe fn destroy_pipeline(&self, pipeline: &Pipeline) {
         unsafe {
             self.device.destroy_pipeline(pipeline.pipeline, None);
             self.device
@@ -433,7 +433,7 @@ impl Device {
         Buffer::new(&self.device, Arc::clone(&self.allocator), allocation)
     }
 
-    pub(super) unsafe fn destroy_buffer(&self, mut buffer: Buffer) {
+    pub(super) unsafe fn destroy_buffer(&self, buffer: &mut Buffer) {
         let allocation = buffer.allocation.take().unwrap();
 
         unsafe {

@@ -84,41 +84,31 @@ impl Device {
         })
     }
 
-    fn destroy_shader_module(&self, shader_module: gapi::ShaderModule) {
-        unsafe {
-            self.device.device.destroy_shader_module(&shader_module);
-        }
-    }
-
     pub fn create_pipeline(&self, desc: &PipelineDesc) -> Result<Pipeline, Error> {
         let pipeline = unsafe { self.device.device.create_pipeline(desc)? };
 
-        Ok(Pipeline { pipeline })
-    }
-
-    pub fn destroy_pipeline(&self, pipeline: Pipeline) {
-        unsafe {
-            self.device.device.destroy_pipeline(pipeline.pipeline);
-        }
+        Ok(Pipeline {
+            device: Arc::clone(&self.device),
+            pipeline,
+        })
     }
 
     pub fn create_buffer(&self, allocation: BufferAllocation) -> Result<Buffer, Error> {
         let buffer = unsafe { self.device.device.create_buffer(allocation)? };
 
         Ok(Buffer {
+            device: Arc::clone(&self.device),
             buffer: RwLock::new(buffer),
         })
     }
 
-    pub fn destroy_buffer(&self, buffer: Buffer) {
-        let buffer = buffer.buffer.into_inner().unwrap();
-        unsafe {
-            self.device.device.destroy_buffer(buffer);
-        }
-    }
-
     pub fn create_texture(&self, desc: &TextureDesc) -> Result<Texture, Error> {
-        let cbuf = self.device.command_encoder.read().unwrap().current_command_buffer();
+        let cbuf = self
+            .device
+            .command_encoder
+            .read()
+            .unwrap()
+            .current_command_buffer();
         let texture = unsafe { self.device.device.create_texture(cbuf, desc)? };
 
         Ok(Texture { texture })
@@ -291,11 +281,29 @@ pub struct PipelineDesc<'a> {
 }
 
 pub struct Pipeline {
+    device: Arc<gapi::Device2>,
     pipeline: gapi::Pipeline,
 }
 
+impl Drop for Pipeline {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.device.destroy_pipeline(&self.pipeline);
+        }
+    }
+}
+
 pub struct Buffer {
+    device: Arc<gapi::Device2>,
     buffer: RwLock<gapi::Buffer>,
+}
+
+impl Drop for Buffer {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.device.destroy_buffer(&mut self.buffer.write().unwrap());
+        }
+    }
 }
 
 impl Buffer {
