@@ -76,12 +76,11 @@ impl AppState {
             },
         );
 
-        reg.insert(InputState::new());
-        reg.insert(Timings::new());
-
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
 
+        reg.insert(InputState::new());
+        reg.insert(Timings::new());
         reg.insert(ui);
         reg.insert(window);
         reg.insert(vfs);

@@ -13,7 +13,7 @@ pub use query::*;
 use std::any::{Any, TypeId};
 use std::cell::{Ref, RefCell, RefMut};
 
-use ahash::HashMap;
+use ahash::{HashMap, AHashSet};
 
 pub struct Registry {
     resources: HashMap<TypeId, Box<RefCell<dyn Any>>>,
@@ -60,17 +60,48 @@ impl Registry {
     }
 
     pub fn spawn<B: Bundle>(&mut self, components: B) {
-        unimplemented!()
+        let types = B::types();
+        let archetype_index = self
+            .archetypes
+            .iter_mut()
+            .position(|archetype| archetype.has_exactly(&types));
+
+        let archetype_index = match archetype_index {
+            Some(index) => {
+                index
+            }
+            None => {
+                let index = self.archetypes.len();
+
+                self.archetypes.push(Archetype::new(AHashSet::from_iter(types)));
+
+                index
+            }
+        };
+
+        let archetype = &mut self.archetypes[archetype_index];
+
+        let row_index = archetype.allocate_row();
+
+        components.insert(row_index, archetype);
     }
 }
 
 pub trait Bundle {
     fn types() -> Vec<TypeId>;
+    fn insert(self, index: usize, archetype: &mut Archetype);
 }
 
 impl<A: 'static, B: 'static> Bundle for (A, B) {
     fn types() -> Vec<TypeId> {
         vec![TypeId::of::<A>(), TypeId::of::<B>()]
+    }
+
+    fn insert(self, index: usize, archetype: &mut Archetype) {
+        unsafe {
+            (*archetype.column_mut::<A>().get()).insert(index, self.0);
+            (*archetype.column_mut::<B>().get()).insert(index, self.1);
+        }
     }
 }
 

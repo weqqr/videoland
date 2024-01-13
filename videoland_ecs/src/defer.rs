@@ -1,6 +1,6 @@
 use std::cell::RefMut;
 
-use crate::{Registry, SystemParam};
+use crate::{Registry, SystemParam, Bundle};
 
 pub type DeferredFn = Box<dyn FnOnce(&mut Registry)>;
 
@@ -43,8 +43,10 @@ impl<'a> Defer<'a> {
     }
 
     pub fn insert<R: 'static>(&mut self, r: R) {
-        self.defer(|reg| {
-            reg.insert(r);
-        })
+        self.defer(|reg| reg.insert(r));
+    }
+
+    pub fn spawn<B: Bundle + 'static>(&mut self, components: B) {
+        self.defer(|reg| reg.spawn(components));
     }
 }

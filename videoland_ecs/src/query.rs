@@ -67,6 +67,7 @@ pub type UntypedColumn = Box<dyn Any>;
 pub struct Archetype {
     component_types: AHashSet<TypeId>,
     component_columns: AHashMap<TypeId, UntypedColumn>,
+    len: usize,
 }
 
 impl Archetype {
@@ -74,11 +75,16 @@ impl Archetype {
         Self {
             component_types: types,
             component_columns: AHashMap::new(),
+            len: 0,
         }
     }
 
     pub fn has(&self, ty: TypeId) -> bool {
         self.component_types.contains(&ty)
+    }
+
+    pub fn has_exactly(&self, tys: &[TypeId]) -> bool {
+        tys.iter().all(|ty| self.has(*ty)) && tys.len() == self.component_types.len()
     }
 
     pub fn column<T: 'static>(&self) -> &UnsafeCell<Vec<T>> {
@@ -87,6 +93,20 @@ impl Archetype {
             .unwrap()
             .downcast_ref()
             .unwrap()
+    }
+
+    pub fn column_mut<T: 'static>(&mut self) -> &UnsafeCell<Vec<T>> {
+        self.component_columns
+            .entry(TypeId::of::<T>())
+            .or_insert_with(|| Box::new(UnsafeCell::new(Vec::<T>::new())))
+            .downcast_ref()
+            .unwrap()
+    }
+
+    pub fn allocate_row(&mut self) -> usize {
+        let len = self.len;
+        self.len += 1;
+        len
     }
 }
 

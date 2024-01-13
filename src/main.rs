@@ -14,8 +14,8 @@ fn test(input_state: Res<InputState>, q: Query<(&String, &mut i32)>) {
     }
 
     for (string, int) in q.iter() {
+        println!("{string} {int}");
         *int = 51;
-        println!("{string}");
     }
 }
 
@@ -23,6 +23,8 @@ fn init_systems(mut defer: Defer) {
     defer.insert(ActionMap::new());
     defer.insert(Player::new());
     defer.insert(EventQueue::<Action>::new());
+
+    defer.spawn(("test".to_owned(), 2222i32));
 }
 
 fn main() {
