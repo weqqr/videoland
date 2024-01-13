@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+use ahash::AHashMap;
+
 use crate::{expand_macro_staircase, Registry};
 
 pub struct SystemFn<F, FnParams> {
@@ -28,24 +30,33 @@ pub trait IntoSystem<I, S> {
     fn into_system(self) -> S;
 }
 
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub enum Stage {
+    Init,
+    Frame,
+}
+
 pub struct Schedule {
-    systems: Vec<Box<dyn System>>,
+    systems: AHashMap<Stage, Vec<Box<dyn System>>>,
 }
 
 impl Schedule {
     pub fn new() -> Self {
         Self {
-            systems: Vec::new(),
+            systems: AHashMap::new(),
         }
     }
 
-    pub fn add_system<I, S: System + 'static>(&mut self, s: impl IntoSystem<I, S>) {
-        self.systems.push(Box::new(s.into_system()));
+    pub fn add_system<I, S: System + 'static>(&mut self, stage: Stage, s: impl IntoSystem<I, S>) {
+        let systems = self.systems.entry(stage).or_default();
+        systems.push(Box::new(s.into_system()));
     }
 
-    pub fn execute(&mut self, reg: &Registry) {
-        for system in &mut self.systems {
+    pub fn execute(&mut self, stage: Stage, reg: &mut Registry) {
+        for system in self.systems.entry(stage).or_default() {
             system.run(reg);
+            let mut defer_queue = reg.defer_queue.replace(Default::default());
+            defer_queue.apply(reg);
         }
     }
 }

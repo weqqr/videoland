@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 
+pub mod defer;
 pub mod exec;
 pub mod mq;
 pub mod query;
 
+pub use defer::*;
 pub use exec::*;
 pub use mq::*;
 pub use query::*;
@@ -15,6 +17,7 @@ use ahash::HashMap;
 
 pub struct Registry {
     resources: HashMap<TypeId, Box<RefCell<dyn Any>>>,
+    defer_queue: RefCell<DeferQueue>,
     archetypes: Vec<Archetype>,
 }
 
@@ -22,6 +25,7 @@ impl Registry {
     pub fn new() -> Self {
         Self {
             resources: HashMap::default(),
+            defer_queue: RefCell::new(DeferQueue::new()),
             archetypes: Vec::new(),
         }
     }
@@ -66,10 +70,7 @@ pub trait Bundle {
 
 impl<A: 'static, B: 'static> Bundle for (A, B) {
     fn types() -> Vec<TypeId> {
-        vec![
-            TypeId::of::<A>(),
-            TypeId::of::<B>(),
-        ]
+        vec![TypeId::of::<A>(), TypeId::of::<B>()]
     }
 }
 

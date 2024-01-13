@@ -243,17 +243,14 @@ impl Renderer {
 
         std::mem::swap(&mut self.depth, &mut depth);
         std::mem::swap(&mut self.depth_view, &mut depth_view);
+
         self.depth_layout = rhi::TextureLayout::Undefined;
 
         self.device.destroy_texture_view(&mut depth_view);
         self.device.destroy_texture(&mut depth);
     }
 
-    pub fn render(
-        &mut self,
-        viewport_extent: Extent2D,
-        ui: &PreparedUi,
-    ) {
+    pub fn render(&mut self, viewport_extent: Extent2D, ui: &PreparedUi) {
         let frame = self.device.acquire_next_image();
         let frame_image = frame.image_view();
 

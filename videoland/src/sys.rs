@@ -1,10 +1,8 @@
 pub use videoland_ecs::clear_events;
 
-use videoland_ecs::{Events, Res, ResMut};
+use videoland_ecs::{Res, ResMut};
 use videoland_render2::egui::PreparedUi;
 use videoland_render2::{Extent2D, Renderer};
-use winit::event::KeyEvent;
-use winit::keyboard::{Key, NamedKey};
 use winit::window::Window;
 
 use crate::camera::Camera;

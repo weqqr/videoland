@@ -1,6 +1,6 @@
-use std::cell::Ref;
+use std::cell::{Ref, RefMut};
 
-use crate::{ResMut, SystemParam, Registry};
+use crate::{Registry, ResMut, SystemParam};
 
 pub struct EventQueue<E> {
     events: Vec<E>,
@@ -8,9 +8,7 @@ pub struct EventQueue<E> {
 
 impl<E> EventQueue<E> {
     pub fn new() -> Self {
-        Self {
-            events: Vec::new(),
-        }
+        Self { events: Vec::new() }
     }
 
     pub fn emit(&mut self, event: E) {
@@ -43,5 +41,29 @@ impl<'a, E: 'static> SystemParam for Events<'a, E> {
 impl<E> Events<'_, E> {
     pub fn iter(&self) -> impl Iterator<Item = &E> {
         self.value.events.iter()
+    }
+}
+
+pub struct EventsMut<'a, E> {
+    value: RefMut<'a, EventQueue<E>>,
+}
+
+impl<'a, E: 'static> SystemParam for EventsMut<'a, E> {
+    type Item<'w> = EventsMut<'w, E>;
+
+    fn get(reg: &Registry) -> Self::Item<'_> {
+        EventsMut {
+            value: reg.res_mut::<EventQueue<E>>(),
+        }
+    }
+}
+
+impl<E> EventsMut<'_, E> {
+    pub fn iter(&self) -> impl Iterator<Item = &E> {
+        self.value.events.iter()
+    }
+
+    pub fn emit(&mut self, event: E) {
+        self.value.emit(event)
     }
 }

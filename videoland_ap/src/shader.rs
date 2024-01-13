@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use hassle_rs::{DxcIncludeHandler, HassleError, DxcLibrary, DxcCompiler, Dxc};
+use hassle_rs::{Dxc, DxcCompiler, DxcIncludeHandler, DxcLibrary, HassleError};
 
 pub enum ShaderStage {
     Vertex,
@@ -14,9 +14,7 @@ pub struct Shader {
 
 impl Shader {
     pub fn from_spirv_unchecked(data: Vec<u8>) -> Self {
-        Self {
-            data,
-        }
+        Self { data }
     }
 
     pub fn spirv(&self) -> &[u32] {

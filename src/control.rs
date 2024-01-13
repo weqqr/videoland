@@ -1,12 +1,15 @@
-use videoland::EngineState;
+use std::collections::HashMap;
+
 use videoland::camera::Camera;
-use videoland::ecs::{Res, ResMut, Events};
+use videoland::ecs::{Events, EventsMut, Res, ResMut};
 use videoland::input::InputState;
 use videoland::math::Vec3;
 use videoland::timing::Timings;
 use videoland::winit::event::KeyEvent;
-use videoland::winit::keyboard::{KeyCode, NamedKey, Key};
+use videoland::winit::keyboard::{KeyCode, PhysicalKey};
+use videoland::EngineState;
 
+#[derive(Clone)]
 pub enum Action {
     MoveForward,
     MoveBack,
@@ -14,16 +17,64 @@ pub enum Action {
     MoveRight,
     MoveUp,
     MoveDown,
-    Sprint,
+    Quit,
+}
+
+pub struct ActionMap {
+    keys: HashMap<KeyCode, Action>,
+}
+
+impl ActionMap {
+    pub fn new() -> Self {
+        let mut keys = HashMap::new();
+        keys.insert(KeyCode::KeyW, Action::MoveForward);
+        keys.insert(KeyCode::KeyA, Action::MoveLeft);
+        keys.insert(KeyCode::KeyS, Action::MoveBack);
+        keys.insert(KeyCode::KeyD, Action::MoveRight);
+        keys.insert(KeyCode::Space, Action::MoveUp);
+        keys.insert(KeyCode::ShiftLeft, Action::MoveDown);
+        keys.insert(KeyCode::KeyQ, Action::Quit);
+        keys.insert(KeyCode::Escape, Action::Quit);
+
+        Self { keys }
+    }
+
+    pub fn action_for_key(&self, key: KeyCode) -> Option<Action> {
+        self.keys.get(&key).cloned()
+    }
 }
 
 pub struct Player {
     camera: Camera,
 }
 
-pub fn handle_input(mut engine_state: ResMut<EngineState>, input: Events<KeyEvent>) {
+impl Player {
+    pub fn new() -> Self {
+        Self {
+            camera: Camera::new(),
+        }
+    }
+}
+
+pub fn handle_input(
+    action_map: Res<ActionMap>,
+    input: Events<KeyEvent>,
+    mut actions: EventsMut<Action>,
+) {
     for key in input.iter() {
-        if let Key::Named(NamedKey::Escape) = key.logical_key {
+        let PhysicalKey::Code(key) = key.physical_key else {
+            continue;
+        };
+
+        if let Some(action) = action_map.action_for_key(key) {
+            actions.emit(action);
+        }
+    }
+}
+
+pub fn update_engine_state(mut engine_state: ResMut<EngineState>, actions: Events<Action>) {
+    for action in actions.iter() {
+        if let Action::Quit = action {
             engine_state.quit = true;
         }
     }

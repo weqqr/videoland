@@ -301,7 +301,9 @@ pub struct Buffer {
 impl Drop for Buffer {
     fn drop(&mut self) {
         unsafe {
-            self.device.device.destroy_buffer(&mut self.buffer.write().unwrap());
+            self.device
+                .device
+                .destroy_buffer(&mut self.buffer.write().unwrap());
         }
     }
 }

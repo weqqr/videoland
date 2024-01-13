@@ -21,7 +21,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use uuid::Uuid;
-use videoland_ecs::{Registry, Schedule};
+use videoland_ecs::{Registry, Schedule, Stage};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -49,7 +49,7 @@ struct AppState {
 }
 
 impl AppState {
-    fn new(schedule: Schedule, window: Window) -> Self {
+    fn new(mut schedule: Schedule, window: Window) -> Self {
         let settings = Settings::load_global();
 
         let thread_pool = Arc::new(ThreadPoolBuilder::new().num_threads(4).build().unwrap());
@@ -89,6 +89,8 @@ impl AppState {
         reg.insert(renderer);
         reg.insert(PreparedUi::default());
         reg.insert(EngineState::default());
+
+        schedule.execute(Stage::Init, &mut reg);
 
         Self {
             material,
@@ -147,7 +149,7 @@ impl AppState {
             let dt = timings.dtime_s() as f32;
         }
 
-        self.schedule.execute(&self.reg);
+        self.schedule.execute(Stage::Frame, &mut self.reg);
 
         self.reg.res_mut::<InputState>().reset_mouse_movement();
 
