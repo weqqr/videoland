@@ -22,6 +22,52 @@ pub enum Error {
     Allocation(#[from] gpu_alloc::AllocationError),
 }
 
+pub struct Device2 {
+    pub(crate) command_encoder: RwLock<CommandEncoder>,
+    pub(crate) swapchain: RwLock<Swapchain>,
+    pub(crate) device: Device,
+    pub(crate) physical_device: PhysicalDevice,
+    pub(crate) surface: Surface,
+    pub(crate) instance: Instance,
+}
+
+impl Device2 {
+    pub(super) fn new<W>(window: W) -> Result<Self, Error>
+    where
+        W: HasWindowHandle,
+    {
+        unsafe {
+            let instance = Instance::new()?;
+            let surface = instance.create_surface(window)?;
+            let physical_device = instance.get_physical_device(&surface)?;
+            let device = instance.create_device(&physical_device)?;
+            let swapchain = device.create_swapchain(&surface)?;
+            let command_encoder = device.create_command_encoder()?;
+
+            Ok(Self {
+                instance,
+                surface,
+                physical_device,
+                device,
+                swapchain: RwLock::new(swapchain),
+                command_encoder: RwLock::new(command_encoder),
+            })
+        }
+    }
+
+    pub fn resize_swapchain(&self, size: super::Extent2D) -> Result<(), Error> {
+        unsafe { self.swapchain.write().unwrap().resize(size) }
+    }
+
+    pub fn acquire_next_frame(&self) -> SwapchainFrame {
+        unsafe { self.swapchain.write().unwrap().acquire_next_frame() }
+    }
+
+    pub fn begin_command_buffer(&self, frame: &SwapchainFrame) -> CommandBuffer {
+        unsafe { self.command_encoder.write().unwrap().begin(frame) }
+    }
+}
+
 pub struct Instance {
     entry: ash::Entry,
     instance: ash::Instance,
@@ -204,7 +250,8 @@ impl Surface {
     {
         let surface_ext = khr::Surface::new(entry, instance);
 
-        let surface = Self::create_surface(entry, instance, window.window_handle().unwrap().as_raw())?;
+        let surface =
+            Self::create_surface(entry, instance, window.window_handle().unwrap().as_raw())?;
 
         Ok(Self {
             surface_ext,
@@ -224,7 +271,12 @@ impl Surface {
         };
 
         let create_info = vk::Win32SurfaceCreateInfoKHR::builder()
-            .hinstance(handle.hinstance.map(|hinstance| hinstance.get() as *const std::ffi::c_void).unwrap_or(std::ptr::null() as *const std::ffi::c_void))
+            .hinstance(
+                handle
+                    .hinstance
+                    .map(|hinstance| hinstance.get() as *const std::ffi::c_void)
+                    .unwrap_or(std::ptr::null()),
+            )
             .hwnd(handle.hwnd.get() as *const std::ffi::c_void);
 
         let win32_surface_ext = khr::Win32Surface::new(entry, instance);
@@ -352,7 +404,7 @@ impl Device {
         ShaderModule::new(&self.device, spirv)
     }
 
-    pub(super) unsafe fn destroy_shader_module(&self, shader_module: ShaderModule) {
+    pub(super) unsafe fn destroy_shader_module(&self, shader_module: &ShaderModule) {
         unsafe {
             self.device
                 .destroy_shader_module(shader_module.shader_module, None);

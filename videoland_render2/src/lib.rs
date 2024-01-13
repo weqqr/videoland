@@ -53,7 +53,7 @@ struct PushConstants {
 }
 
 pub struct Renderer {
-    device: rhi::Device2,
+    device: rhi::Device,
 
     materials: AHashMap<Uuid, GpuMaterial>,
     meshes: AHashMap<Uuid, GpuMesh>,
@@ -83,7 +83,7 @@ impl Drop for Renderer {
 
 impl Renderer {
     pub fn new(window: &Window) -> Self {
-        let device = rhi::Device2::new(window).unwrap();
+        let device = rhi::Device::new(window).unwrap();
 
         let size = window.inner_size();
         let depth_desc = rhi::TextureDesc {
@@ -166,9 +166,6 @@ impl Renderer {
             .unwrap();
 
         self.materials.insert(id, GpuMaterial { pipeline });
-
-        self.device.destroy_shader_module(vs);
-        self.device.destroy_shader_module(fs);
     }
 
     /*pub fn upload_meshes(&mut self, world: &mut World) {

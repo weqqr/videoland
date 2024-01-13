@@ -14,7 +14,7 @@ pub struct EguiRenderer {
 }
 
 impl EguiRenderer {
-    pub fn new(device: &rhi::Device2, vertex_spirv: Vec<u32>, fragment_spirv: Vec<u32>) -> Self {
+    pub fn new(device: &rhi::Device, vertex_spirv: Vec<u32>, fragment_spirv: Vec<u32>) -> Self {
         let initial_buffer_size = 1024 * 1024 * 4;
 
         let buffer = device

@@ -3,12 +3,12 @@
 #[cfg(feature = "vk")]
 mod vk;
 
-use bitflags::bitflags;
-use raw_window_handle::HasWindowHandle;
-use std::sync::RwLock;
-
 #[cfg(feature = "vk")]
 use crate::vk as gapi;
+
+use bitflags::bitflags;
+use raw_window_handle::HasWindowHandle;
+use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Extent2D {
@@ -47,83 +47,63 @@ pub struct BufferAllocation {
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[cfg(feature = "vk")]
-    #[error("Vulkan error: {0}")]
+    #[error("GAPI error: {0}")]
     Api(#[from] gapi::Error),
 }
 
-pub struct Device2 {
-    command_encoder: gapi::CommandEncoder,
-    swapchain: gapi::Swapchain,
-    device: gapi::Device,
-    physical_device: gapi::PhysicalDevice,
-    surface: gapi::Surface,
-    instance: gapi::Instance,
+pub struct Device {
+    device: Arc<gapi::Device2>,
 }
 
-impl Device2 {
+impl Device {
     pub fn new<W>(window: W) -> Result<Self, Error>
     where
         W: HasWindowHandle,
     {
-        unsafe {
-            let instance = gapi::Instance::new().unwrap();
-            let surface = instance.create_surface(window).unwrap();
-            let physical_device = instance.get_physical_device(&surface).unwrap();
-            let device = instance.create_device(&physical_device).unwrap();
-            let swapchain = device.create_swapchain(&surface).unwrap();
-            let command_encoder = device.create_command_encoder().unwrap();
+        let device = gapi::Device2::new(window).unwrap();
 
-            Ok(Self {
-                instance,
-                surface,
-                physical_device,
-                device,
-                swapchain,
-                command_encoder,
-            })
-        }
+        Ok(Self {
+            device: Arc::new(device),
+        })
     }
 
-    pub fn resize_swapchain(&mut self, size: impl Into<Extent2D>) -> Result<(), Error> {
-        unsafe { self.swapchain.resize(size.into())? };
-
-        Ok(())
+    pub fn resize_swapchain(&self, size: impl Into<Extent2D>) -> Result<(), Error> {
+        Ok(self.device.resize_swapchain(size.into())?)
     }
 
-    pub fn acquire_next_image(&mut self) -> SwapchainFrame {
-        let frame = unsafe { self.swapchain.acquire_next_frame() };
-
-        SwapchainFrame::new(frame)
+    pub fn acquire_next_image(&self) -> SwapchainFrame {
+        SwapchainFrame::new(self.device.acquire_next_frame())
     }
 
     pub fn create_shader_module(&self, data: &[u32]) -> Result<ShaderModule, Error> {
-        let shader_module = unsafe { self.device.create_shader_module(data)? };
+        let shader_module = unsafe { self.device.device.create_shader_module(data)? };
 
-        Ok(ShaderModule { shader_module })
+        Ok(ShaderModule {
+            device: Arc::clone(&self.device),
+            shader_module,
+        })
     }
 
-    pub fn destroy_shader_module(&self, shader_module: ShaderModule) {
+    fn destroy_shader_module(&self, shader_module: gapi::ShaderModule) {
         unsafe {
-            self.device
-                .destroy_shader_module(shader_module.shader_module);
+            self.device.device.destroy_shader_module(&shader_module);
         }
     }
 
     pub fn create_pipeline(&self, desc: &PipelineDesc) -> Result<Pipeline, Error> {
-        let pipeline = unsafe { self.device.create_pipeline(desc)? };
+        let pipeline = unsafe { self.device.device.create_pipeline(desc)? };
 
         Ok(Pipeline { pipeline })
     }
 
     pub fn destroy_pipeline(&self, pipeline: Pipeline) {
         unsafe {
-            self.device.destroy_pipeline(pipeline.pipeline);
+            self.device.device.destroy_pipeline(pipeline.pipeline);
         }
     }
 
     pub fn create_buffer(&self, allocation: BufferAllocation) -> Result<Buffer, Error> {
-        let buffer = unsafe { self.device.create_buffer(allocation)? };
+        let buffer = unsafe { self.device.device.create_buffer(allocation)? };
 
         Ok(Buffer {
             buffer: RwLock::new(buffer),
@@ -133,20 +113,20 @@ impl Device2 {
     pub fn destroy_buffer(&self, buffer: Buffer) {
         let buffer = buffer.buffer.into_inner().unwrap();
         unsafe {
-            self.device.destroy_buffer(buffer);
+            self.device.device.destroy_buffer(buffer);
         }
     }
 
     pub fn create_texture(&self, desc: &TextureDesc) -> Result<Texture, Error> {
-        let cbuf = self.command_encoder.current_command_buffer();
-        let texture = unsafe { self.device.create_texture(cbuf, desc)? };
+        let cbuf = self.device.command_encoder.read().unwrap().current_command_buffer();
+        let texture = unsafe { self.device.device.create_texture(cbuf, desc)? };
 
         Ok(Texture { texture })
     }
 
     pub fn destroy_texture(&self, texture: &mut Texture) {
         unsafe {
-            self.device.destroy_texture(&mut texture.texture);
+            self.device.device.destroy_texture(&mut texture.texture);
         }
     }
 
@@ -155,7 +135,11 @@ impl Device2 {
         texture: &Texture,
         desc: &TextureViewDesc,
     ) -> Result<TextureView, Error> {
-        let texture_view = unsafe { self.device.create_texture_view(&texture.texture, desc)? };
+        let texture_view = unsafe {
+            self.device
+                .device
+                .create_texture_view(&texture.texture, desc)?
+        };
 
         Ok(TextureView { texture_view })
     }
@@ -163,12 +147,13 @@ impl Device2 {
     pub fn destroy_texture_view(&self, texture_view: &mut TextureView) {
         unsafe {
             self.device
+                .device
                 .destroy_texture_view(&mut texture_view.texture_view);
         }
     }
 
     pub fn begin_command_buffer(&mut self, frame: &SwapchainFrame) -> CommandBuffer {
-        unsafe { CommandBuffer::new(self.command_encoder.begin(&frame.frame)) }
+        CommandBuffer::new(self.device.begin_command_buffer(&frame.frame))
     }
 
     pub fn submit_frame(
@@ -177,10 +162,10 @@ impl Device2 {
         frame: &SwapchainFrame,
     ) -> Result<(), Error> {
         unsafe {
-            self.device.submit_frame(
-                &self.command_encoder,
+            self.device.device.submit_frame(
+                &self.device.command_encoder.read().unwrap(),
                 command_buffer.command_buffer,
-                &self.swapchain,
+                &self.device.swapchain.read().unwrap(),
                 &frame.frame,
             )?;
         }
@@ -285,7 +270,18 @@ impl CommandBuffer {
 }
 
 pub struct ShaderModule {
+    device: Arc<gapi::Device2>,
     shader_module: gapi::ShaderModule,
+}
+
+impl Drop for ShaderModule {
+    fn drop(&mut self) {
+        unsafe {
+            self.device
+                .device
+                .destroy_shader_module(&self.shader_module);
+        }
+    }
 }
 
 pub struct PipelineDesc<'a> {
