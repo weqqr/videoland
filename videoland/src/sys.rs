@@ -33,11 +33,3 @@ pub fn render(window: Res<Window>, prepared_ui: Res<PreparedUi>, mut renderer: R
 
     renderer.render(extent, &prepared_ui);
 }
-
-pub fn handle_input(input: Events<KeyEvent>) {
-    for key in input.iter() {
-        if let Key::Named(NamedKey::Escape) = key.logical_key {
-            println!("escape");
-        }
-    }
-}

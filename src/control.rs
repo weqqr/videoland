@@ -1,9 +1,11 @@
+use videoland::EngineState;
 use videoland::camera::Camera;
-use videoland::ecs::{Res, ResMut};
+use videoland::ecs::{Res, ResMut, Events};
 use videoland::input::InputState;
 use videoland::math::Vec3;
 use videoland::timing::Timings;
-use videoland::winit::keyboard::KeyCode;
+use videoland::winit::event::KeyEvent;
+use videoland::winit::keyboard::{KeyCode, NamedKey, Key};
 
 pub enum Action {
     MoveForward,
@@ -17,6 +19,14 @@ pub enum Action {
 
 pub struct Player {
     camera: Camera,
+}
+
+pub fn handle_input(mut engine_state: ResMut<EngineState>, input: Events<KeyEvent>) {
+    for key in input.iter() {
+        if let Key::Named(NamedKey::Escape) = key.logical_key {
+            engine_state.quit = true;
+        }
+    }
 }
 
 pub fn move_player(

@@ -36,6 +36,11 @@ use crate::settings::Settings;
 use crate::timing::Timings;
 use crate::ui::Ui;
 
+#[derive(Default)]
+pub struct EngineState {
+    pub quit: bool,
+}
+
 struct AppState {
     material: Uuid,
     reg: Registry,
@@ -83,6 +88,7 @@ impl AppState {
         reg.insert(settings);
         reg.insert(renderer);
         reg.insert(PreparedUi::default());
+        reg.insert(EngineState::default());
 
         Self {
             material,
@@ -144,6 +150,10 @@ impl AppState {
         self.schedule.execute(&self.reg);
 
         self.reg.res_mut::<InputState>().reset_mouse_movement();
+
+        if self.reg.res::<EngineState>().quit {
+            return EventLoopIterationDecision::Break;
+        }
 
         EventLoopIterationDecision::Continue
     }
