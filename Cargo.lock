@@ -19,6 +19,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c71b1793ee61086797f5c80b6efa2b8ffa6d5dd703f118545808a7f2e27f7046"
 
 [[package]]
+name = "accesskit"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6cb10ed32c63247e4e39a8f42e8e30fb9442fbf7878c8e4a9849e7e381619bea"
+dependencies = [
+ "enumn",
+ "serde",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -27,6 +37,7 @@ dependencies = [
  "cfg-if",
  "getrandom",
  "once_cell",
+ "serde",
  "version_check",
  "zerocopy",
 ]
@@ -386,6 +397,7 @@ name = "dsots"
 version = "0.1.0"
 dependencies = [
  "videoland",
+ "videoland_editor",
 ]
 
 [[package]]
@@ -395,6 +407,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57539aabcdbb733b6806ef421b66dec158dc1582107ad6d51913db3600303354"
 dependencies = [
  "bytemuck",
+ "serde",
 ]
 
 [[package]]
@@ -403,10 +416,12 @@ version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0bf640ed7f3bf3d14ebf00d73bacc09c886443ee84ca6494bde37953012c9e3"
 dependencies = [
+ "accesskit",
  "ahash",
  "epaint",
  "log",
  "nohash-hasher",
+ "serde",
 ]
 
 [[package]]
@@ -425,6 +440,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_tiles"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0255c0209b349b1a4a67a344556501e75accae669f3a25be6e07deb30fefa91"
+dependencies = [
+ "ahash",
+ "egui",
+ "itertools",
+ "log",
+ "serde",
+]
+
+[[package]]
 name = "either"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -437,6 +465,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ee58355767587db7ba3738930d93cad3052cd834c2b48b9ef6ef26fe4823b7e"
 dependencies = [
  "bytemuck",
+ "serde",
+]
+
+[[package]]
+name = "enumn"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fd000fd6988e73bbe993ea3db9b1aa64906ab88766d654973924340c8cddb42"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -453,6 +493,7 @@ dependencies = [
  "log",
  "nohash-hasher",
  "parking_lot",
+ "serde",
 ]
 
 [[package]]
@@ -618,6 +659,15 @@ checksum = "d530e1a18b1cb4c484e6e34556a0d948706958449fca0cab753d649f2bce3d1f"
 dependencies = [
  "equivalent",
  "hashbrown",
+]
+
+[[package]]
+name = "itertools"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25db6b064527c5d482d0423354fcd07a89a2dfe07b67892e62411946db7f07b0"
+dependencies = [
+ "either",
 ]
 
 [[package]]
@@ -1522,6 +1572,7 @@ dependencies = [
  "uuid",
  "videoland_ap",
  "videoland_ecs",
+ "videoland_egui",
  "videoland_render2",
  "videoland_rhi",
  "winit",
@@ -1545,6 +1596,28 @@ name = "videoland_ecs"
 version = "0.1.0"
 dependencies = [
  "ahash",
+]
+
+[[package]]
+name = "videoland_editor"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "egui_tiles",
+ "indexmap",
+ "videoland_ecs",
+ "videoland_egui",
+]
+
+[[package]]
+name = "videoland_egui"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "egui-winit",
+ "indexmap",
+ "videoland_render2",
+ "winit",
 ]
 
 [[package]]

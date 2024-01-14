@@ -15,9 +15,11 @@ fn init(mut defer: Defer) {
 fn main() {
     let mut schedule = Schedule::new();
     schedule.add_system(Stage::Init, init);
+    schedule.add_system(Stage::Init, videoland_editor::init);
     schedule.add_system(Stage::Frame, control::handle_input);
     schedule.add_system(Stage::Frame, control::move_player);
     schedule.add_system(Stage::Frame, videoland::sys::show_test_window);
+    schedule.add_system(Stage::Frame, videoland_editor::show);
     schedule.add_system(Stage::Frame, videoland::sys::prepare_ui);
     schedule.add_system(Stage::Frame, videoland::sys::render);
     schedule.add_system(Stage::Frame, control::update_engine_state);

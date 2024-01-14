@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 videoland_ap = { workspace = true }
 videoland_ecs = { workspace = true }
+videoland_egui = { workspace = true }
 videoland_render2 = { workspace = true }
 videoland_rhi = { workspace = true }
 
@@ -17,7 +18,7 @@ bytemuck = { workspace = true, features = ["derive"] }
 egui = { workspace = true }
 egui-winit = { version = "0.25.0", default-features = false, features = ["clipboard"] }
 glam = { workspace = true, features = ["bytemuck"] }
-indexmap = "2.0.2"
+indexmap = { workspace = true }
 mlua = { version = "0.9.1", features = ["luau"] }
 physx-sys = "0.11.5"
 raw-window-handle = "0.5.0"

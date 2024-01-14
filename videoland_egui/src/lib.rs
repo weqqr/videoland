@@ -97,8 +97,8 @@ impl Ui {
                 outer_margin: Margin::same(0.0),
                 rounding: Rounding::ZERO,
                 shadow: Shadow::NONE,
-                fill: Palette::BLACK,
-                stroke: Stroke::new(1.0, Palette::GREY),
+                fill: Color32::BLACK,
+                stroke: Stroke::new(1.0, Color32::GRAY),
             })
             .show(&self.ctx, |ui| {
                 status_data(ui, &data);
@@ -134,40 +134,13 @@ pub fn status_data(ui: &mut egui::Ui, data: &IndexMap<String, String>) {
         };
 
         for (index, (key, value)) in data.iter().enumerate() {
-            label(ui, key, Palette::WHITE);
+            label(ui, key, Color32::WHITE);
             ui.add_space(2.0);
-            label(ui, value, Palette::HIGH_CYAN);
+            label(ui, value, Color32::YELLOW);
 
             if index < data.len() - 1 {
                 ui.add_space(12.0);
             }
         }
     });
-}
-
-enum Palette {}
-
-impl Palette {
-    const BLACK: Color32 = Color32::from_rgb(0x00, 0x00, 0x00);
-    const GREY: Color32 = Color32::from_rgb(0x55, 0x55, 0x55);
-    const LIGHT_GREY: Color32 = Color32::from_rgb(0xaa, 0xaa, 0xaa);
-    const WHITE: Color32 = Color32::from_rgb(0xff, 0xff, 0xff);
-
-    const LOW_BLUE: Color32 = Color32::from_rgb(0x00, 0x00, 0xaa);
-    const HIGH_BLUE: Color32 = Color32::from_rgb(0x55, 0x55, 0xff);
-
-    const LOW_GREEN: Color32 = Color32::from_rgb(0x00, 0xaa, 0x00);
-    const HIGH_GREEN: Color32 = Color32::from_rgb(0x55, 0xff, 0x55);
-
-    const LOW_CYAN: Color32 = Color32::from_rgb(0x00, 0xaa, 0xaa);
-    const HIGH_CYAN: Color32 = Color32::from_rgb(0x55, 0xff, 0xff);
-
-    const LOW_RED: Color32 = Color32::from_rgb(0xaa, 0x00, 0x00);
-    const HIGH_RED: Color32 = Color32::from_rgb(0xff, 0x55, 0x55);
-
-    const LOW_MAGENTA: Color32 = Color32::from_rgb(0xaa, 0x00, 0xaa);
-    const HIGH_MAGENTA: Color32 = Color32::from_rgb(0xff, 0x55, 0xff);
-
-    const BROWN: Color32 = Color32::from_rgb(0xaa, 0x55, 0x00);
-    const YELLOW: Color32 = Color32::from_rgb(0xff, 0xff, 0x55);
 }

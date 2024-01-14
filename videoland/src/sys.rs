@@ -1,12 +1,12 @@
 pub use videoland_ecs::clear_events;
 
 use videoland_ecs::{Res, ResMut};
+use videoland_egui::Ui;
 use videoland_render2::egui::PreparedUi;
 use videoland_render2::{Extent2D, Renderer};
 use winit::window::Window;
 
 use crate::camera::Camera;
-use crate::ui::Ui;
 
 pub fn prepare_ui(window: Res<Window>, mut ui: ResMut<Ui>, mut prepared_ui: ResMut<PreparedUi>) {
     *prepared_ui = ui.finish_frame(&window);

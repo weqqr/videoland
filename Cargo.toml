@@ -7,11 +7,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-videoland = { path = "videoland" }
+videoland = { workspace = true }
+videoland_editor = { workspace = true }
 
 [workspace.dependencies]
+videoland = { path = "videoland" }
 videoland_ap = { path = "videoland_ap" }
 videoland_ecs = { path = "videoland_ecs" }
+videoland_editor = { path = "videoland_editor" }
+videoland_egui = { path = "videoland_egui" }
 videoland_render2 = { path = "videoland_render2" }
 videoland_rhi = { path = "videoland_rhi" }
 
@@ -19,6 +23,7 @@ egui = "0.25.0"
 ahash = "0.8.6"
 bytemuck = "1.14.0"
 glam = "0.24.2"
+indexmap = "2.0.2"
 thiserror = "1.0.49"
 tracing = "0.1.40"
 uuid = "1.4.1"

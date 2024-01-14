@@ -101,7 +101,7 @@ impl EguiRenderer {
             match &primitive.primitive {
                 Primitive::Mesh(mesh) => {
                     let vertex_offset = vertex_count;
-                    let index_offset = indices.len();
+                    let index_offset = index_buffer.len();
 
                     let mesh_vertex_buffer: &[u8] = bytemuck::cast_slice(&mesh.vertices);
                     vertex_buffer.extend_from_slice(mesh_vertex_buffer);
@@ -118,7 +118,6 @@ impl EguiRenderer {
         }
 
         if vertex_buffer.len() as u64 > self.vertex_buffer.len() {
-            println!("Egui Resize: {}", vertex_buffer.len());
             self.vertex_buffer = self
                 .device
                 .create_buffer(BufferAllocation {
@@ -130,13 +129,12 @@ impl EguiRenderer {
         }
 
         if index_buffer.len() as u64 * 4 > self.index_buffer.len() {
-            println!("Egui Resize: {}", index_buffer.len());
             self.index_buffer = self
                 .device
                 .create_buffer(BufferAllocation {
                     usage: rhi::BufferUsage::INDEX,
                     location: rhi::BufferLocation::Cpu,
-                    size: index_buffer.len() as u64,
+                    size: index_buffer.len() as u64 * 4,
                 })
                 .unwrap();
         }

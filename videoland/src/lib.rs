@@ -7,12 +7,12 @@ pub mod input;
 pub mod settings;
 pub mod sys;
 pub mod timing;
-pub mod ui;
 
 pub use glam as math;
 use render2::egui::PreparedUi;
 pub use videoland_ap as ap;
 pub use videoland_ecs as ecs;
+use videoland_egui::Ui;
 pub use videoland_render2 as render2;
 pub use winit;
 
@@ -34,7 +34,6 @@ use crate::input::InputState;
 use crate::render2::{Extent2D, MaterialDesc, Renderer};
 use crate::settings::Settings;
 use crate::timing::Timings;
-use crate::ui::Ui;
 
 #[derive(Default)]
 pub struct EngineState {
