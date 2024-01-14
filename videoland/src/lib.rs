@@ -55,7 +55,7 @@ impl AppState {
         let thread_pool = Arc::new(ThreadPoolBuilder::new().num_threads(4).build().unwrap());
 
         let vfs = Vfs::new("data");
-        let mut renderer = Renderer::new(&window);
+        let mut renderer = Renderer::new(&window, &vfs);
         let mut ui = Ui::new(&window);
 
         ui.begin_frame(&window);

@@ -29,6 +29,7 @@ pub struct BufferUsage(u32);
 bitflags! {
     impl BufferUsage: u32 {
         const VERTEX = 1 << 0;
+        const INDEX = 1 << 0;
     }
 }
 
@@ -51,6 +52,7 @@ pub enum Error {
     Api(#[from] gapi::Error),
 }
 
+#[derive(Clone)]
 pub struct Device {
     device: Arc<gapi::Device2>,
 }
@@ -238,6 +240,14 @@ impl CommandBuffer {
         }
     }
 
+    pub fn bind_index_buffer(&self, buffer: &Buffer) {
+        let buffer = buffer.buffer.read().unwrap();
+
+        unsafe {
+            self.command_buffer.bind_index_buffer(&buffer);
+        }
+    }
+
     pub fn set_push_constants(&self, pipeline: &Pipeline, offset: u32, constants: &[u8]) {
         unsafe {
             self.command_buffer
@@ -255,6 +265,20 @@ impl CommandBuffer {
         unsafe {
             self.command_buffer
                 .draw(vertex_count, instance_count, first_vertex, first_instance);
+        }
+    }
+
+    pub fn draw_indexed(
+        &self,
+        index_count: u32,
+        instance_count: u32,
+        first_index: u32,
+        vertex_offset: i32,
+        first_instance: u32,
+    ) {
+        unsafe {
+            self.command_buffer
+                .draw_indexed(index_count, instance_count, first_index, vertex_offset, first_instance);
         }
     }
 }
@@ -358,6 +382,7 @@ pub enum TextureLayout {
 
 #[derive(Clone, Copy)]
 pub enum VertexFormat {
+    Uint32x1,
     Float32x1,
     Float32x2,
     Float32x3,

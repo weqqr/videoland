@@ -16,7 +16,6 @@ videoland_render2 = { path = "videoland_render2" }
 videoland_rhi = { path = "videoland_rhi" }
 
 egui = "0.25.0"
-egui-winit = "0.25.0"
 ahash = "0.8.6"
 bytemuck = "1.14.0"
 glam = "0.24.2"

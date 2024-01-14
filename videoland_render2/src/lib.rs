@@ -1,7 +1,8 @@
 use ahash::AHashMap;
 use glam::Mat4;
 use uuid::Uuid;
-use videoland_ap::shader::Shader;
+use videoland_ap::Vfs;
+use videoland_ap::shader::{Shader, ShaderStage};
 use videoland_rhi as rhi;
 use winit::window::Window;
 
@@ -74,7 +75,7 @@ impl Drop for Renderer {
 }
 
 impl Renderer {
-    pub fn new(window: &Window) -> Self {
+    pub fn new(window: &Window, vfs: &Vfs) -> Self {
         let device = rhi::Device::new(window).unwrap();
 
         let size = window.inner_size();
@@ -96,7 +97,9 @@ impl Renderer {
             )
             .unwrap();
 
-        let egui_renderer = EguiRenderer::new(&device, vec![], vec![]);
+        let egui_vertex  = vfs.load_shader_sync("shaders/egui.hlsl", ShaderStage::Vertex);
+        let egui_fragment  = vfs.load_shader_sync("shaders/egui.hlsl", ShaderStage::Fragment);
+        let egui_renderer = EguiRenderer::new(device.clone(), egui_vertex, egui_fragment);
 
         Self {
             device,
@@ -289,7 +292,7 @@ impl Renderer {
         //     command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
         // }
 
-        self.egui_renderer.render(ui);
+        self.egui_renderer.render(&command_buffer, ui);
 
         command_buffer.end_rendering();
 

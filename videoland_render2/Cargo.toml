@@ -12,7 +12,7 @@ videoland_rhi = { workspace = true }
 
 ahash = { workspace = true }
 bytemuck = { workspace = true, features = ["derive"] }
-egui = { workspace = true }
+egui = { workspace = true, features = ["bytemuck"] }
 glam = { workspace = true, features = ["bytemuck"] }
 uuid = { workspace = true, features = ["v4"] }
 winit = { workspace = true, features = ["rwh_05"] }

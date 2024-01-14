@@ -82,7 +82,7 @@ impl Ui {
 
     pub fn begin_frame(&mut self, window: &Window) {
         let input = self.winit_state.take_egui_input(window);
-        self.ctx.begin_frame(egui::RawInput::default());
+        self.ctx.begin_frame(input);
     }
 
     pub fn status_bar(&self, data: IndexMap<String, String>) {

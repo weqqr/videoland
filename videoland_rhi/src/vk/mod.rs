@@ -957,6 +957,10 @@ impl CommandBuffer {
             .cmd_bind_vertex_buffers(self.command_buffer, 0, &[buffer.buffer], &[0]);
     }
 
+    pub(super) unsafe fn bind_index_buffer(&self, buffer: &Buffer) {
+        self.device.cmd_bind_index_buffer(self.command_buffer, buffer.buffer, 0, vk::IndexType::UINT32)
+    }
+
     pub(super) unsafe fn set_push_constants(
         &self,
         pipeline: &Pipeline,
@@ -985,6 +989,24 @@ impl CommandBuffer {
             vertex_count,
             instance_count,
             first_vertex,
+            first_instance,
+        );
+    }
+
+    pub(super) unsafe fn draw_indexed(
+        &self,
+        index_count: u32,
+        instance_count: u32,
+        first_index: u32,
+        vertex_offset: i32,
+        first_instance: u32,
+    ) {
+        self.device.cmd_draw_indexed(
+            self.command_buffer,
+            index_count,
+            instance_count,
+            first_index,
+            vertex_offset,
             first_instance,
         );
     }
@@ -1153,7 +1175,7 @@ impl Pipeline {
 
         let vertex_binding_descriptions = &[vk::VertexInputBindingDescription::builder()
             .binding(0)
-            .stride(8 * 4)
+            .stride(desc.vertex_layout.stride)
             .input_rate(vk::VertexInputRate::VERTEX)
             .build()];
 
@@ -1176,7 +1198,13 @@ impl Pipeline {
 
         let color_blend_attachment_state = vk::PipelineColorBlendAttachmentState::builder()
             .color_write_mask(vk::ColorComponentFlags::RGBA)
-            .blend_enable(false);
+            .alpha_blend_op(vk::BlendOp::ADD)
+            .src_alpha_blend_factor(vk::BlendFactor::ONE)
+            .dst_alpha_blend_factor(vk::BlendFactor::ZERO)
+            .color_blend_op(vk::BlendOp::ADD)
+            .src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
+            .dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+            .blend_enable(true);
 
         let color_blend_attachments = &[color_blend_attachment_state.build()];
 
@@ -1369,6 +1397,10 @@ fn usage_to_vk(usage: super::BufferUsage) -> vk::BufferUsageFlags {
         vk_usage |= vk::BufferUsageFlags::VERTEX_BUFFER;
     }
 
+    if usage.contains(super::BufferUsage::INDEX) {
+        vk_usage |= vk::BufferUsageFlags::INDEX_BUFFER;
+    }
+
     vk_usage
 }
 
@@ -1388,6 +1420,7 @@ impl From<super::TextureLayout> for vk::ImageLayout {
 impl From<super::VertexFormat> for vk::Format {
     fn from(value: super::VertexFormat) -> Self {
         match value {
+            super::VertexFormat::Uint32x1 => vk::Format::R32_UINT,
             super::VertexFormat::Float32x1 => vk::Format::R32_SFLOAT,
             super::VertexFormat::Float32x2 => vk::Format::R32G32_SFLOAT,
             super::VertexFormat::Float32x3 => vk::Format::R32G32B32_SFLOAT,

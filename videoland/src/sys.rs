@@ -16,6 +16,7 @@ pub fn prepare_ui(window: Res<Window>, mut ui: ResMut<Ui>, mut prepared_ui: ResM
 pub fn show_test_window(ui: Res<Ui>) {
     egui::Window::new("--videoland-test-window").show(ui.ctx(), |ui| {
         ui.label("Hello, world!");
+        let _ = ui.button("test");
     });
 }
 
