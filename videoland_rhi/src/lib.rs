@@ -11,6 +11,16 @@ use raw_window_handle::HasWindowHandle;
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Clone, Copy)]
+pub struct ShaderStages(u32);
+
+bitflags! {
+    impl ShaderStages: u32 {
+        const VERTEX = 1 << 0;
+        const FRAGMENT = 1 << 0;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct Extent2D {
     pub width: u32,
     pub height: u32,
@@ -116,6 +126,15 @@ impl Device {
         Ok(Texture { texture })
     }
 
+    pub fn create_descriptor_set_layout(&self, desc: &DescriptorSetLayoutDesc) -> Result<DescriptorSetLayout, Error> {
+        let layout = unsafe { self.device.device.create_descriptor_set_layout(desc)? };
+
+        Ok(DescriptorSetLayout {
+            device: Arc::clone(&self.device),
+            descriptor_set_layout: layout,
+        })
+    }
+
     pub fn destroy_texture(&self, texture: &mut Texture) {
         unsafe {
             self.device.device.destroy_texture(&mut texture.texture);
@@ -163,6 +182,34 @@ impl Device {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum DescriptorType {
+    SampledTexture,
+}
+
+pub struct DescriptorSetLayoutEntry {
+    pub binding: u32,
+    pub visibility: ShaderStages,
+    pub ty: DescriptorType,
+}
+
+pub struct DescriptorSetLayoutDesc<'a> {
+    pub entries: &'a [DescriptorSetLayoutEntry],
+}
+
+pub struct DescriptorSetLayout {
+    device: Arc<gapi::Device2>,
+    descriptor_set_layout: gapi::DescriptorSetLayout,
+}
+
+impl Drop for DescriptorSetLayout {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.device.destroy_descriptor_set_layout(&self.descriptor_set_layout);
+        }
     }
 }
 

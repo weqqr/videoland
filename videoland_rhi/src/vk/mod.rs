@@ -7,6 +7,8 @@ use ash::vk;
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use tinyvec::ArrayVec;
 
+use crate::DescriptorSetLayoutEntry;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Vulkan instance has no supported devices")]
@@ -487,6 +489,17 @@ impl Device {
         }
     }
 
+    pub(super) unsafe fn create_descriptor_set_layout(
+        &self,
+        desc: &super::DescriptorSetLayoutDesc,
+    ) -> Result<DescriptorSetLayout, Error> {
+        DescriptorSetLayout::new(&self.device, desc)
+    }
+
+    pub(super) unsafe fn destroy_descriptor_set_layout(&self, layout: &DescriptorSetLayout) {
+        self.device.destroy_descriptor_set_layout(layout.layout, None);
+    }
+
     pub unsafe fn wait_for_sync(&self) {
         let semaphores = &[self.timeline_semaphore];
         let semaphore_values = &[self.sync.load(Ordering::SeqCst)];
@@ -576,6 +589,71 @@ impl Device {
         self.wait_for_sync();
 
         Ok(())
+    }
+}
+
+pub struct DescriptorAllocator {
+    device: ash::Device,
+    pools: Vec<vk::DescriptorPool>,
+}
+
+impl Drop for DescriptorAllocator {
+    fn drop(&mut self) {
+        unsafe {
+            for pool in self.pools.drain(..) {
+                self.device.destroy_descriptor_pool(pool, None);
+            }
+        }
+    }
+}
+
+impl DescriptorAllocator {
+    unsafe fn new(device: &ash::Device) -> Result<Self, Error> {
+        let pool_size = &[vk::DescriptorPoolSize::builder()
+            .descriptor_count(100)
+            .build()];
+
+        let create_info = vk::DescriptorPoolCreateInfo::builder().pool_sizes(pool_size);
+
+        let pool = device.create_descriptor_pool(&create_info, None)?;
+
+        Ok(Self {
+            device: device.clone(),
+            pools: vec![pool],
+        })
+    }
+}
+
+pub struct DescriptorSetLayout {
+    device: ash::Device,
+    layout: vk::DescriptorSetLayout,
+}
+
+impl DescriptorSetLayout {
+    unsafe fn new(
+        device: &ash::Device,
+        desc: &super::DescriptorSetLayoutDesc,
+    ) -> Result<Self, Error> {
+        let mut bindings = vec![];
+
+        for entry in desc.entries {
+            let binding = vk::DescriptorSetLayoutBinding::builder()
+                .binding(entry.binding)
+                .descriptor_count(1)
+                .descriptor_type(entry.ty.into())
+                .build();
+
+            bindings.push(binding);
+        }
+
+        let create_info = vk::DescriptorSetLayoutCreateInfo::builder().bindings(&bindings);
+
+        let layout = device.create_descriptor_set_layout(&create_info, None)?;
+
+        Ok(Self {
+            device: device.clone(),
+            layout,
+        })
     }
 }
 
@@ -958,7 +1036,12 @@ impl CommandBuffer {
     }
 
     pub(super) unsafe fn bind_index_buffer(&self, buffer: &Buffer) {
-        self.device.cmd_bind_index_buffer(self.command_buffer, buffer.buffer, 0, vk::IndexType::UINT32)
+        self.device.cmd_bind_index_buffer(
+            self.command_buffer,
+            buffer.buffer,
+            0,
+            vk::IndexType::UINT32,
+        )
     }
 
     pub(super) unsafe fn set_push_constants(
@@ -1402,6 +1485,14 @@ fn usage_to_vk(usage: super::BufferUsage) -> vk::BufferUsageFlags {
     }
 
     vk_usage
+}
+
+impl From<super::DescriptorType> for vk::DescriptorType {
+    fn from(value: super::DescriptorType) -> Self {
+        match value {
+            super::DescriptorType::SampledTexture => vk::DescriptorType::SAMPLED_IMAGE,
+        }
+    }
 }
 
 impl From<super::TextureLayout> for vk::ImageLayout {

@@ -42,6 +42,14 @@ impl EguiRenderer {
             .create_shader_module(fragment_shader.spirv())
             .unwrap();
 
+        let descriptor_set_layout = device.create_descriptor_set_layout(&rhi::DescriptorSetLayoutDesc {
+            entries: &[rhi::DescriptorSetLayoutEntry {
+                binding: 0,
+                visibility: rhi::ShaderStages::FRAGMENT,
+                ty: rhi::DescriptorType::SampledTexture,
+            }],
+        });
+
         let pipeline = device
             .create_pipeline(&rhi::PipelineDesc {
                 vertex: &vertex_shader,
