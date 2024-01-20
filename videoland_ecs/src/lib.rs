@@ -19,6 +19,7 @@ pub struct Registry {
     resources: HashMap<TypeId, Box<RefCell<dyn Any>>>,
     defer_queue: RefCell<DeferQueue>,
     archetypes: Vec<Archetype>,
+    step: Step,
 }
 
 impl Registry {
@@ -27,6 +28,7 @@ impl Registry {
             resources: HashMap::default(),
             defer_queue: RefCell::new(DeferQueue::new()),
             archetypes: Vec::new(),
+            step: Step::new(0),
         }
     }
 
@@ -84,6 +86,23 @@ impl Registry {
         let row_index = archetype.allocate_row();
 
         components.insert(row_index, archetype);
+    }
+
+    pub fn next_step(&mut self) {
+        self.step.increment();
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Step(u64);
+
+impl Step {
+    pub fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub fn increment(&mut self) {
+        self.0 += 1;
     }
 }
 

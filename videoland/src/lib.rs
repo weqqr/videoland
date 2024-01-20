@@ -147,13 +147,15 @@ impl AppState {
             let dt = timings.dtime_s() as f32;
         }
 
-        self.schedule.execute(Stage::Frame, &mut self.reg);
+        self.schedule.execute(Stage::EachStep, &mut self.reg);
 
         self.reg.res_mut::<InputState>().reset_mouse_movement();
 
         if self.reg.res::<EngineState>().quit {
             return EventLoopIterationDecision::Break;
         }
+
+        self.reg.next_step();
 
         EventLoopIterationDecision::Continue
     }

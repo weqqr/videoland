@@ -2,10 +2,12 @@ use std::marker::PhantomData;
 
 use ahash::AHashMap;
 
-use crate::{expand_macro_staircase, Registry};
+use crate::{expand_macro_staircase, Registry, Step};
 
 pub struct SystemFn<F, FnParams> {
     func: F,
+
+    step: Step,
 
     // needed to constrain input types for System impl
     _pd: PhantomData<FnParams>,
@@ -23,6 +25,8 @@ type SystemParamItem<'w, T> = <T as SystemParam>::Item<'w>;
 
 pub trait System {
     fn run(&mut self, reg: &Registry);
+    fn step(&self) -> Step;
+    fn set_step(&mut self, step: Step);
 }
 
 // user code will have to specify type parameters in add_system without this
@@ -33,7 +37,7 @@ pub trait IntoSystem<I, S> {
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub enum Stage {
     Init,
-    Frame,
+    EachStep,
 }
 
 pub struct Schedule {
@@ -57,6 +61,7 @@ impl Schedule {
             system.run(reg);
             let mut defer_queue = reg.defer_queue.replace(Default::default());
             defer_queue.apply(reg);
+            system.set_step(reg.step);
         }
     }
 }
@@ -83,6 +88,14 @@ macro_rules! impl_system_for_systemfn {
 
                 call_inner(&mut self.func, $($ts),*)
             }
+
+            fn step(&self) -> Step {
+                self.step
+            }
+
+            fn set_step(&mut self, step: Step) {
+                self.step = step;
+            }
         }
     };
 }
@@ -99,6 +112,7 @@ macro_rules! impl_into_system_for_fn {
             fn into_system(self) -> SystemFn<Self, ($($ts,)*)> {
                 SystemFn {
                     func: self,
+                    step: Step::new(0),
                     _pd: PhantomData,
                 }
             }
