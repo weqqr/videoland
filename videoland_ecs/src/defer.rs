@@ -1,6 +1,6 @@
 use std::cell::RefMut;
 
-use crate::{Registry, SystemParam, Bundle};
+use crate::{Bundle, Registry, SystemParam};
 
 pub type DeferredFn = Box<dyn FnOnce(&mut Registry)>;
 

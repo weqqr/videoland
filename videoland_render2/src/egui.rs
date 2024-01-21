@@ -11,77 +11,61 @@ pub struct PreparedUi {
 }
 
 pub struct EguiRenderer {
-    device: rhi::Device,
+    context: rhi::Context,
     vertex_buffer: rhi::Buffer,
     index_buffer: rhi::Buffer,
     pipeline: rhi::Pipeline,
 }
 
 impl EguiRenderer {
-    pub fn new(device: rhi::Device, vertex_shader: Shader, fragment_shader: Shader) -> Self {
+    pub fn new(context: rhi::Context, vertex_shader: Shader, fragment_shader: Shader) -> Self {
         let initial_buffer_size = 1024 * 1024 * 4;
 
-        let vertex_buffer = device
-            .create_buffer(BufferAllocation {
-                usage: rhi::BufferUsage::VERTEX,
-                location: rhi::BufferLocation::Cpu,
-                size: initial_buffer_size,
-            })
-            .unwrap();
-
-        let index_buffer = device
-            .create_buffer(BufferAllocation {
-                usage: rhi::BufferUsage::INDEX,
-                location: rhi::BufferLocation::Cpu,
-                size: initial_buffer_size,
-            })
-            .unwrap();
-
-        let vertex_shader = device.create_shader_module(vertex_shader.spirv()).unwrap();
-        let fragment_shader = device
-            .create_shader_module(fragment_shader.spirv())
-            .unwrap();
-
-        let descriptor_set_layout = device.create_descriptor_set_layout(&rhi::DescriptorSetLayoutDesc {
-            entries: &[rhi::DescriptorSetLayoutEntry {
-                binding: 0,
-                visibility: rhi::ShaderStages::FRAGMENT,
-                ty: rhi::DescriptorType::SampledTexture,
-            }],
+        let vertex_buffer = context.create_buffer(BufferAllocation {
+            usage: rhi::BufferUsage::VERTEX,
+            location: rhi::BufferLocation::Cpu,
+            size: initial_buffer_size,
         });
 
-        let pipeline = device
-            .create_pipeline(&rhi::PipelineDesc {
-                vertex: &vertex_shader,
-                fragment: &fragment_shader,
-                vertex_layout: rhi::VertexBufferLayout {
-                    attributes: &[
-                        rhi::VertexAttribute {
-                            binding: 0,
-                            location: 0,
-                            offset: 0,
-                            format: rhi::VertexFormat::Float32x2,
-                        },
-                        rhi::VertexAttribute {
-                            binding: 0,
-                            location: 1,
-                            offset: 2 * 4,
-                            format: rhi::VertexFormat::Float32x2,
-                        },
-                        rhi::VertexAttribute {
-                            binding: 0,
-                            location: 2,
-                            offset: 4 * 4,
-                            format: rhi::VertexFormat::Uint32x1,
-                        },
-                    ],
-                    stride: 5 * 4,
-                },
-            })
-            .unwrap();
+        let index_buffer = context.create_buffer(BufferAllocation {
+            usage: rhi::BufferUsage::INDEX,
+            location: rhi::BufferLocation::Cpu,
+            size: initial_buffer_size,
+        });
+
+        let vertex_shader = context.create_shader_module(vertex_shader.spirv());
+        let fragment_shader = context.create_shader_module(fragment_shader.spirv());
+
+        let pipeline = context.create_pipeline(&rhi::PipelineDesc {
+            vertex: &vertex_shader,
+            fragment: &fragment_shader,
+            vertex_layout: rhi::VertexBufferLayout {
+                attributes: &[
+                    rhi::VertexAttribute {
+                        binding: 0,
+                        location: 0,
+                        offset: 0,
+                        format: rhi::VertexFormat::Float32x2,
+                    },
+                    rhi::VertexAttribute {
+                        binding: 0,
+                        location: 1,
+                        offset: 2 * 4,
+                        format: rhi::VertexFormat::Float32x2,
+                    },
+                    rhi::VertexAttribute {
+                        binding: 0,
+                        location: 2,
+                        offset: 4 * 4,
+                        format: rhi::VertexFormat::Uint32x1,
+                    },
+                ],
+                stride: 5 * 4,
+            },
+        });
 
         Self {
-            device,
+            context,
             vertex_buffer,
             index_buffer,
             pipeline,
@@ -118,25 +102,19 @@ impl EguiRenderer {
         }
 
         if vertex_buffer.len() as u64 > self.vertex_buffer.len() {
-            self.vertex_buffer = self
-                .device
-                .create_buffer(BufferAllocation {
-                    usage: rhi::BufferUsage::VERTEX,
-                    location: rhi::BufferLocation::Cpu,
-                    size: vertex_buffer.len() as u64,
-                })
-                .unwrap();
+            self.vertex_buffer = self.context.create_buffer(BufferAllocation {
+                usage: rhi::BufferUsage::VERTEX,
+                location: rhi::BufferLocation::Cpu,
+                size: vertex_buffer.len() as u64,
+            });
         }
 
         if index_buffer.len() as u64 * 4 > self.index_buffer.len() {
-            self.index_buffer = self
-                .device
-                .create_buffer(BufferAllocation {
-                    usage: rhi::BufferUsage::INDEX,
-                    location: rhi::BufferLocation::Cpu,
-                    size: index_buffer.len() as u64 * 4,
-                })
-                .unwrap();
+            self.index_buffer = self.context.create_buffer(BufferAllocation {
+                usage: rhi::BufferUsage::INDEX,
+                location: rhi::BufferLocation::Cpu,
+                size: index_buffer.len() as u64 * 4,
+            });
         }
 
         self.vertex_buffer.write_data(0, &vertex_buffer);

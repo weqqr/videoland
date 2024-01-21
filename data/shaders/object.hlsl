@@ -23,13 +23,15 @@ PsInput vs_main(
 }
 
 float4 fs_main(PsInput input) : SV_TARGET {
-    float3 sun_dir = normalize(float3(0.7, -0.8, 0.3));
+    float3 sun_dir = normalize(float3(0.7, 0.8, 0.3));
     float3 sun_color = float3(1.0, 1.0, 1.0);
 
     float3 albedo = float3(1.0, 1.0, 1.0);
+    float env = 0.4;
+
     float n_dot_l = dot(input.normal, normalize(sun_dir));
 
-    float3 shaded = albedo * sun_color * abs(n_dot_l);
+    float3 shaded = saturate(env + albedo * sun_color * (saturate(n_dot_l) - 0.5 * env));
 
     return float4(shaded, 1.0);
 }

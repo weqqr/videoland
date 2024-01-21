@@ -13,7 +13,7 @@ pub use query::*;
 use std::any::{Any, TypeId};
 use std::cell::{Ref, RefCell, RefMut};
 
-use ahash::{HashMap, AHashSet};
+use ahash::{AHashSet, HashMap};
 
 pub struct Registry {
     resources: HashMap<TypeId, Box<RefCell<dyn Any>>>,
@@ -69,13 +69,12 @@ impl Registry {
             .position(|archetype| archetype.has_exactly(&types));
 
         let archetype_index = match archetype_index {
-            Some(index) => {
-                index
-            }
+            Some(index) => index,
             None => {
                 let index = self.archetypes.len();
 
-                self.archetypes.push(Archetype::new(AHashSet::from_iter(types)));
+                self.archetypes
+                    .push(Archetype::new(AHashSet::from_iter(types)));
 
                 index
             }

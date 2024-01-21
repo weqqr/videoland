@@ -20,7 +20,12 @@ pub fn show_test_window(ui: Res<Ui>) {
     });
 }
 
-pub fn render(window: Res<Window>, camera: Res<MainCamera>, prepared_ui: Res<PreparedUi>, mut renderer: ResMut<Renderer>) {
+pub fn render(
+    window: Res<Window>,
+    camera: Res<MainCamera>,
+    prepared_ui: Res<PreparedUi>,
+    mut renderer: ResMut<Renderer>,
+) {
     let window_size = window.inner_size();
 
     let extent = Extent2D {
@@ -28,5 +33,9 @@ pub fn render(window: Res<Window>, camera: Res<MainCamera>, prepared_ui: Res<Pre
         height: window_size.height,
     };
 
-    renderer.render(camera.camera.view_projection(extent.aspect_ratio()), extent, &prepared_ui);
+    renderer.render(
+        camera.camera.view_projection(extent.aspect_ratio()),
+        extent,
+        &prepared_ui,
+    );
 }

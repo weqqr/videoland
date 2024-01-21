@@ -20,7 +20,6 @@ use std::sync::Arc;
 
 use indexmap::IndexMap;
 use rayon::{ThreadPool, ThreadPoolBuilder};
-use uuid::Uuid;
 use videoland_ecs::{Registry, Schedule, Stage};
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
