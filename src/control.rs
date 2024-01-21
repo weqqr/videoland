@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use videoland::camera::Camera;
+use videoland::camera::{Camera, MainCamera};
 use videoland::ecs::{Events, EventsMut, Res, ResMut};
 use videoland::input::InputState;
 use videoland::math::Vec3;
@@ -120,4 +120,8 @@ pub fn move_player(
 
     movement_dir = movement_dir.normalize_or_zero();
     player.camera.position += movement_dir * distance;
+}
+
+pub fn update_camera(player: Res<Player>, mut main_camera: ResMut<MainCamera>) {
+    main_camera.camera = player.camera.clone();
 }

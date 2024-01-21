@@ -29,9 +29,10 @@ use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
 use crate::ap::shader::ShaderStage;
 use crate::ap::Vfs;
+use crate::camera::MainCamera;
 use crate::ecs::EventQueue;
 use crate::input::InputState;
-use crate::render2::{Extent2D, MaterialDesc, Renderer};
+use crate::render2::{Extent2D, Renderer};
 use crate::settings::Settings;
 use crate::timing::Timings;
 
@@ -41,7 +42,6 @@ pub struct EngineState {
 }
 
 struct AppState {
-    material: Uuid,
     reg: Registry,
     schedule: Schedule,
     thread_pool: Arc<ThreadPool>,
@@ -54,7 +54,7 @@ impl AppState {
         let thread_pool = Arc::new(ThreadPoolBuilder::new().num_threads(4).build().unwrap());
 
         let vfs = Vfs::new("data");
-        let mut renderer = Renderer::new(&window, &vfs);
+        let renderer = Renderer::new(&window, &vfs);
         let mut ui = Ui::new(&window);
 
         ui.begin_frame(&window);
@@ -65,15 +65,6 @@ impl AppState {
 
         let vertex_shader = &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Vertex);
         let fragment_shader = &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Fragment);
-
-        let material = Uuid::new_v4();
-        renderer.upload_material(
-            material,
-            &MaterialDesc {
-                vertex_shader,
-                fragment_shader,
-            },
-        );
 
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
@@ -87,11 +78,11 @@ impl AppState {
         reg.insert(renderer);
         reg.insert(PreparedUi::default());
         reg.insert(EngineState::default());
+        reg.insert(MainCamera::new());
 
         schedule.execute(Stage::Init, &mut reg);
 
         Self {
-            material,
             reg,
             schedule,
             thread_pool,

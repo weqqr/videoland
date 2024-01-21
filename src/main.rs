@@ -19,6 +19,7 @@ fn main() {
     // schedule.add_system(Stage::Init, videoland_editor::init);
     schedule.add_system(Stage::EachStep, control::handle_input);
     schedule.add_system(Stage::EachStep, control::move_player);
+    schedule.add_system(Stage::EachStep, control::update_camera);
     schedule.add_system(Stage::EachStep, videoland::sys::show_test_window);
     // schedule.add_system(Stage::EachStep, videoland_editor::show);
     schedule.add_system(Stage::EachStep, videoland::sys::prepare_ui);

@@ -1,5 +1,18 @@
 use glam::{vec3, Mat4, Quat, Vec3};
 
+pub struct MainCamera {
+    pub camera: Camera,
+}
+
+impl MainCamera {
+    pub fn new() -> Self {
+        Self {
+            camera: Camera::new(),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct Camera {
     pub position: Vec3,
     pub pitch: f32,

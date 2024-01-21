@@ -2,6 +2,7 @@ use ahash::AHashMap;
 use glam::Mat4;
 use uuid::Uuid;
 use videoland_ap::Vfs;
+use videoland_ap::model::{Mesh, Model};
 use videoland_ap::shader::{Shader, ShaderStage};
 use videoland_rhi as rhi;
 use winit::window::Window;
@@ -26,7 +27,7 @@ impl From<Extent2D> for rhi::Extent2D {
 }
 
 impl Extent2D {
-    fn aspect_ratio(&self) -> f32 {
+    pub fn aspect_ratio(&self) -> f32 {
         self.width as f32 / self.height as f32
     }
 }
@@ -58,6 +59,8 @@ pub struct Renderer {
 
     materials: AHashMap<Uuid, GpuMaterial>,
     meshes: AHashMap<Uuid, GpuMesh>,
+
+    material: Uuid,
 
     depth_desc: rhi::TextureDesc,
     depth: rhi::Texture,
@@ -101,11 +104,15 @@ impl Renderer {
         let egui_fragment  = vfs.load_shader_sync("shaders/egui.hlsl", ShaderStage::Fragment);
         let egui_renderer = EguiRenderer::new(device.clone(), egui_vertex, egui_fragment);
 
-        Self {
+        let mesh = vfs.load_binary_sync("models/monkey.obj");
+        let mesh = videoland_ap::model::Model::from_obj(&mesh);
+
+        let mut renderer = Self {
             device,
 
             materials: AHashMap::new(),
             meshes: AHashMap::new(),
+            material: Uuid::nil(),
 
             depth_desc,
             depth,
@@ -113,10 +120,18 @@ impl Renderer {
             depth_layout: rhi::TextureLayout::Undefined,
 
             egui_renderer,
-        }
+        };
+
+        renderer.material = renderer.upload_material(&MaterialDesc {
+            vertex_shader: &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Vertex),
+            fragment_shader: &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Fragment),
+        });
+        renderer.upload_model(&mesh);
+
+        renderer
     }
 
-    pub fn upload_material(&mut self, id: Uuid, desc: &MaterialDesc) {
+    pub fn upload_material(&mut self, desc: &MaterialDesc) -> Uuid {
         let vs = self
             .device
             .create_shader_module(desc.vertex_shader.spirv())
@@ -160,50 +175,29 @@ impl Renderer {
             })
             .unwrap();
 
+        let id = Uuid::new_v4();
+
         self.materials.insert(id, GpuMaterial { pipeline });
+
+        id
     }
 
-    /*pub fn upload_meshes(&mut self, world: &mut World) {
-        let mut entities_with_models = Vec::new();
-
-        for (e, _) in world.query::<&Model>().iter() {
-            entities_with_models.push(e);
-        }
-
-        for entity in entities_with_models {
-            let model = world.remove_one::<Model>(entity).unwrap();
-            for mesh in model.meshes() {
-                let renderable_mesh = self.upload_mesh(mesh);
-
-                world.spawn((
-                    Parent {
-                        entity,
-                        relative_transform: Transform {
-                            position: Vec3::ZERO,
-                            rotation: Quat::IDENTITY,
-                        },
-                    },
-                    Transform {
-                        position: Vec3::ZERO,
-                        rotation: Quat::IDENTITY,
-                    },
-                    renderable_mesh,
-                    Name(mesh.name.clone()),
-                ));
-            }
+    fn upload_model(&mut self, model: &Model) {
+        for mesh in model.meshes() {
+            self.upload_mesh(mesh);
         }
     }
 
-    fn upload_mesh(&mut self, mesh: &Mesh) -> RenderableMesh {
+    fn upload_mesh(&mut self, mesh: &Mesh) {
         let renderable_mesh_id = Uuid::new_v4();
 
         let mesh_data_size = std::mem::size_of_val(mesh.data()) as u64;
 
         let staging = self
             .device
-            .create_buffer(ra::BufferAllocation {
-                usage: ra::BufferUsage::VERTEX,
-                location: ra::BufferLocation::Cpu,
+            .create_buffer(rhi::BufferAllocation {
+                usage: rhi::BufferUsage::VERTEX,
+                location: rhi::BufferLocation::Cpu,
                 size: mesh_data_size,
             })
             .unwrap();
@@ -223,9 +217,7 @@ impl Renderer {
                 buffer: staging,
             },
         );
-
-        RenderableMesh(renderable_mesh_id)
-    }*/
+    }
 
     pub fn resize(&mut self, size: Extent2D) {
         self.device.resize_swapchain(size).unwrap();
@@ -253,7 +245,7 @@ impl Renderer {
         self.device.destroy_texture(&mut depth);
     }
 
-    pub fn render(&mut self, viewport_extent: Extent2D, ui: &PreparedUi) {
+    pub fn render(&mut self, camera_transform: Mat4, viewport_extent: Extent2D, ui: &PreparedUi) {
         let frame = self.device.acquire_next_image();
         let frame_image = frame.image_view();
 
@@ -274,23 +266,21 @@ impl Renderer {
 
         command_buffer.set_viewport(viewport_extent);
 
-        // let material = self.materials.get(&material).unwrap();
+        let material = self.materials.get(&self.material).unwrap();
 
-        // command_buffer.bind_pipeline(&material.pipeline);
+        command_buffer.bind_pipeline(&material.pipeline);
 
-        // for (e, (transform, mesh)) in world.query::<(&Transform, &RenderableMesh)>().iter() {
-        //     let pc = PushConstants {
-        //         view_projection: camera.view_projection(viewport_extent.aspect_ratio()),
-        //         transform: transform.matrix(),
-        //     };
+        for (_, gpu_mesh) in self.meshes.iter() {
+            let pc = PushConstants {
+                view_projection: camera_transform,
+                transform: Mat4::IDENTITY, // transform.matrix(),
+            };
 
-        //     let gpu_mesh = self.meshes.get(&mesh.0).unwrap();
+            command_buffer.set_push_constants(&material.pipeline, 0, bytemuck::bytes_of(&pc));
 
-        //     command_buffer.set_push_constants(&material.pipeline, 0, bytemuck::bytes_of(&pc));
-
-        //     command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
-        //     command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
-        // }
+            command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
+            command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
+        }
 
         self.egui_renderer.render(&command_buffer, ui);
 
