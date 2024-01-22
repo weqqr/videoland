@@ -14,7 +14,7 @@ pub struct ShaderStages(u32);
 bitflags! {
     impl ShaderStages: u32 {
         const VERTEX = 1 << 0;
-        const FRAGMENT = 1 << 0;
+        const FRAGMENT = 1 << 1;
     }
 }
 
