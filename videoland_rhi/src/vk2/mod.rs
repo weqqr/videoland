@@ -115,4 +115,21 @@ impl Context {
     pub fn begin_command_buffer(&self, frame: &SwapchainFrame) -> CommandBuffer {
         unsafe { self.command_encoder.write().unwrap().begin(frame) }
     }
+
+    pub fn immediate_submit<F: FnOnce(&CommandBuffer)>(&self, f: F) {
+        unsafe {
+            let cmd = self
+                .command_encoder
+                .write()
+                .unwrap()
+                .create_command_buffer()
+                .unwrap();
+
+            cmd.begin();
+
+            f(&cmd);
+
+            self.device.submit_command_buffer(cmd).unwrap();
+        }
+    }
 }

@@ -323,6 +323,18 @@ impl CommandBuffer {
         }
     }
 
+    pub fn copy_buffer_to_buffer(&self, src: &Buffer, dst: &Buffer, size: u64) {
+        let region = vk::BufferCopy {
+            size,
+            src_offset: 0,
+            dst_offset: 0,
+        };
+
+        unsafe {
+            self.device.raw().cmd_copy_buffer(self.command_buffer, src.raw(), dst.raw(), &[region]);
+        }
+    }
+
     pub(super) fn raw(&self) -> vk::CommandBuffer {
         self.command_buffer
     }

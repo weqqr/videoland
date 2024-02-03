@@ -180,24 +180,28 @@ impl Renderer {
         let mesh_data_size = std::mem::size_of_val(mesh.data()) as u64;
 
         let mut staging = self.context.create_buffer(rhi::BufferAllocation {
-            usage: rhi::BufferUsage::VERTEX,
+            usage: rhi::BufferUsage::VERTEX | rhi::BufferUsage::TRANSFER_SRC,
             location: rhi::BufferLocation::Cpu,
             size: mesh_data_size,
         });
 
         staging.write_data(0, bytemuck::cast_slice(mesh.data()));
 
-        // let gpu_buffer = self.device.create_buffer(ra::BufferAllocation {
-        //     usage: ra::BufferUsage::VERTEX,
-        //     location: ra::BufferLocation::Gpu,
-        //     size: mesh_data_size,
-        // });
+        let gpu_buffer = self.context.create_buffer(rhi::BufferAllocation {
+            usage: rhi::BufferUsage::VERTEX | rhi::BufferUsage::TRANSFER_DST,
+            location: rhi::BufferLocation::Gpu,
+            size: mesh_data_size,
+        });
+
+        self.context.immediate_submit(|cmd| {
+            cmd.copy_buffer_to_buffer(&staging, &gpu_buffer, mesh_data_size);
+        });
 
         self.meshes.insert(
             renderable_mesh_id,
             GpuMesh {
                 vertex_count: mesh.vertex_count(),
-                buffer: staging,
+                buffer: gpu_buffer,
             },
         );
     }

@@ -102,5 +102,13 @@ fn buffer_usage_to_vk(usage: crate::BufferUsage) -> vk::BufferUsageFlags {
         vk_usage |= vk::BufferUsageFlags::INDEX_BUFFER;
     }
 
+    if usage.contains(crate::BufferUsage::TRANSFER_SRC) {
+        vk_usage |= vk::BufferUsageFlags::TRANSFER_SRC;
+    }
+
+    if usage.contains(crate::BufferUsage::TRANSFER_DST) {
+        vk_usage |= vk::BufferUsageFlags::TRANSFER_DST;
+    }
+
     vk_usage
 }

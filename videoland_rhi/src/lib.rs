@@ -37,7 +37,9 @@ pub struct BufferUsage(u32);
 bitflags! {
     impl BufferUsage: u32 {
         const VERTEX = 1 << 0;
-        const INDEX = 1 << 0;
+        const INDEX = 1 << 1;
+        const TRANSFER_SRC = 1 << 2;
+        const TRANSFER_DST = 1 << 3;
     }
 }
 

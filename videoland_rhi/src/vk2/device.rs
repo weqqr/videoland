@@ -122,6 +122,40 @@ impl Device {
         })
     }
 
+    pub(super) unsafe fn submit_command_buffer(
+        &self,
+        command_buffer: CommandBuffer,
+    ) -> Result<(), Error> {
+        self.device.end_command_buffer(command_buffer.raw())?;
+
+        self.sync.fetch_add(1, Ordering::SeqCst);
+
+        let signal_semaphores = &[self.timeline_semaphore];
+
+        let signal_values = &[self.sync.load(Ordering::SeqCst)];
+
+        let mut timeline_info = vk::TimelineSemaphoreSubmitInfo::builder()
+            .signal_semaphore_values(signal_values);
+
+        let command_buffers = &[command_buffer.raw()];
+
+        let submit_info = vk::SubmitInfo::builder()
+            .signal_semaphores(signal_semaphores)
+            .command_buffers(command_buffers)
+            .push_next(&mut timeline_info)
+            .build();
+
+        let submit_infos = &[submit_info];
+
+        self.device
+            .queue_submit(self.queue, submit_infos, vk::Fence::null())
+            .unwrap();
+
+        self.wait_for_sync();
+
+        Ok(())
+    }
+
     pub(super) unsafe fn submit_frame(
         &self,
         command_buffer: CommandBuffer,
