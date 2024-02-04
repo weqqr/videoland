@@ -1,5 +1,6 @@
 use ahash::AHashMap;
 use glam::Mat4;
+use tracing::info;
 use uuid::Uuid;
 use videoland_ap::model::{Mesh, Model};
 use videoland_ap::shader::{Shader, ShaderStage};
@@ -176,6 +177,7 @@ impl Renderer {
 
     fn upload_mesh(&mut self, mesh: &Mesh) {
         let renderable_mesh_id = Uuid::new_v4();
+        info!(%renderable_mesh_id);
 
         let mesh_data_size = std::mem::size_of_val(mesh.data()) as u64;
 

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use ash::vk;
 use tinyvec::ArrayVec;
 
-use crate::{Error, Device};
+use crate::{Device, Error};
 
 pub struct ShaderModule {
     device: Arc<Device>,
@@ -14,7 +14,9 @@ pub struct ShaderModule {
 impl Drop for ShaderModule {
     fn drop(&mut self) {
         unsafe {
-            self.device.raw().destroy_shader_module(self.shader_module, None);
+            self.device
+                .raw()
+                .destroy_shader_module(self.shader_module, None);
         }
     }
 }
@@ -42,7 +44,9 @@ impl Drop for Pipeline {
     fn drop(&mut self) {
         unsafe {
             self.device.raw().destroy_pipeline(self.pipeline, None);
-            self.device.raw().destroy_pipeline_layout(self.pipeline_layout, None);
+            self.device
+                .raw()
+                .destroy_pipeline_layout(self.pipeline_layout, None);
         }
     }
 }
@@ -50,7 +54,10 @@ impl Drop for Pipeline {
 impl Pipeline {
     const MAX_VERTEX_BUFFER_ATTRIBUTES: usize = 16;
 
-    pub(super) unsafe fn new(device: Arc<Device>, desc: &crate::PipelineDesc) -> Result<Self, Error> {
+    pub(super) unsafe fn new(
+        device: Arc<Device>,
+        desc: &crate::PipelineDesc,
+    ) -> Result<Self, Error> {
         let vertex_shader_stage_create_info = vk::PipelineShaderStageCreateInfo::builder()
             .stage(vk::ShaderStageFlags::VERTEX)
             .name(CStr::from_bytes_with_nul(b"vs_main\0").unwrap())
@@ -134,8 +141,11 @@ impl Pipeline {
             .push_constant_ranges(ranges)
             .set_layouts(&[]);
 
-        let pipeline_layout =
-            unsafe { device.raw().create_pipeline_layout(&pipeline_layout_create_info, None)? };
+        let pipeline_layout = unsafe {
+            device
+                .raw()
+                .create_pipeline_layout(&pipeline_layout_create_info, None)?
+        };
 
         let viewport_state = vk::PipelineViewportStateCreateInfo::builder()
             .viewport_count(1)
@@ -159,7 +169,8 @@ impl Pipeline {
             .depth_stencil_state(&depth_stencil_state)
             .push_next(&mut rendering);
 
-        let pipeline = device.raw()
+        let pipeline = device
+            .raw()
             .create_graphics_pipelines(vk::PipelineCache::null(), &[create_info.build()], None)
             .unwrap()
             .pop()

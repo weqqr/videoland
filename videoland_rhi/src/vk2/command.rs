@@ -331,7 +331,9 @@ impl CommandBuffer {
         };
 
         unsafe {
-            self.device.raw().cmd_copy_buffer(self.command_buffer, src.raw(), dst.raw(), &[region]);
+            self.device
+                .raw()
+                .cmd_copy_buffer(self.command_buffer, src.raw(), dst.raw(), &[region]);
         }
     }
 

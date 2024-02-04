@@ -60,8 +60,15 @@ impl Device {
             .buffer_device_address(true)
             .build();
 
+        let mut indexing_features = vk::PhysicalDeviceDescriptorIndexingFeatures::builder()
+            .descriptor_binding_partially_bound(true)
+            .descriptor_binding_sampled_image_update_after_bind(true)
+            .descriptor_binding_uniform_buffer_update_after_bind(true)
+            .build();
+
         let mut physical_device_features = vk::PhysicalDeviceFeatures2::builder()
             .push_next(&mut buffer_device_address)
+            .push_next(&mut indexing_features)
             .build();
 
         let mut khr_dynamic_rendering =
@@ -134,8 +141,8 @@ impl Device {
 
         let signal_values = &[self.sync.load(Ordering::SeqCst)];
 
-        let mut timeline_info = vk::TimelineSemaphoreSubmitInfo::builder()
-            .signal_semaphore_values(signal_values);
+        let mut timeline_info =
+            vk::TimelineSemaphoreSubmitInfo::builder().signal_semaphore_values(signal_values);
 
         let command_buffers = &[command_buffer.raw()];
 

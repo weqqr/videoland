@@ -14,6 +14,7 @@ ahash = { workspace = true }
 bytemuck = { workspace = true, features = ["derive"] }
 egui = { workspace = true, features = ["bytemuck"] }
 glam = { workspace = true, features = ["bytemuck"] }
+tracing = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 winit = { workspace = true, features = ["rwh_05"] }
 

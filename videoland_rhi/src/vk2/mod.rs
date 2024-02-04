@@ -1,5 +1,6 @@
 mod buffer;
 mod command;
+mod descriptor;
 mod device;
 mod instance;
 mod pipeline;
@@ -19,6 +20,8 @@ pub use swapchain::*;
 pub use texture::*;
 
 use raw_window_handle::HasWindowHandle;
+
+use crate::vk2::descriptor::BindlessDescriptorSet;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -42,6 +45,7 @@ pub struct Context {
     device: Arc<Device>,
     swapchain: Arc<RwLock<Swapchain>>,
     command_encoder: Arc<RwLock<CommandEncoder>>,
+    bindless_descriptor_set: Arc<BindlessDescriptorSet>,
 }
 
 impl Context {
@@ -61,6 +65,8 @@ impl Context {
             )?));
             let command_encoder =
                 Arc::new(RwLock::new(CommandEncoder::new(Arc::clone(&device), 0, 2)?));
+            let bindless_descriptor_set =
+                Arc::new(BindlessDescriptorSet::new(Arc::clone(&device))?);
 
             Ok(Self {
                 instance,
@@ -68,6 +74,7 @@ impl Context {
                 device,
                 swapchain,
                 command_encoder,
+                bindless_descriptor_set,
             })
         }
     }

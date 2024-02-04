@@ -157,7 +157,8 @@ impl Swapchain {
                 .create_image_view(&view_create_info, None)
                 .unwrap();
 
-            let view = TextureView::from_managed(Arc::clone(&self.device), view, size.width, size.height);
+            let view =
+                TextureView::from_managed(Arc::clone(&self.device), view, size.width, size.height);
 
             let acquire_semaphore = self
                 .device

@@ -128,7 +128,12 @@ impl TextureView {
         })
     }
 
-    pub(super) unsafe fn from_managed(device: Arc<Device>, image_view: vk::ImageView, width: u32, height: u32) -> Self {
+    pub(super) unsafe fn from_managed(
+        device: Arc<Device>,
+        image_view: vk::ImageView,
+        width: u32,
+        height: u32,
+    ) -> Self {
         Self {
             is_managed: true,
             device,
