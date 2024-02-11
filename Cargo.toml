@@ -18,6 +18,7 @@ videoland_editor = { path = "videoland_editor" }
 videoland_egui = { path = "videoland_egui" }
 videoland_render2 = { path = "videoland_render2" }
 videoland_rhi = { path = "videoland_rhi" }
+videoland_sg = { path = "videoland_sg" }
 
 egui = "0.25.0"
 ahash = "0.8.6"

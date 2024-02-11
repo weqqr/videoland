@@ -9,30 +9,30 @@ pub mod sys;
 pub mod timing;
 
 pub use glam as math;
-use render2::egui::PreparedUi;
 pub use videoland_ap as ap;
 pub use videoland_ecs as ecs;
-use videoland_egui::Ui;
 pub use videoland_render2 as render2;
+pub use videoland_sg as sg;
 pub use winit;
 
 use std::sync::Arc;
 
 use indexmap::IndexMap;
 use rayon::{ThreadPool, ThreadPoolBuilder};
-use videoland_ecs::{Registry, Schedule, Stage};
+use videoland_egui::Ui;
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
-use crate::ap::shader::ShaderStage;
 use crate::ap::Vfs;
 use crate::camera::MainCamera;
-use crate::ecs::EventQueue;
+use crate::ecs::{EventQueue, Registry, Schedule, Stage};
 use crate::input::InputState;
+use crate::render2::egui::PreparedUi;
 use crate::render2::{Extent2D, Renderer};
 use crate::settings::Settings;
+use crate::sg::SceneGraph;
 use crate::timing::Timings;
 
 #[derive(Default)]
@@ -62,9 +62,6 @@ impl AppState {
 
         reg.insert(EventQueue::<KeyEvent>::new());
 
-        let vertex_shader = &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Vertex);
-        let fragment_shader = &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Fragment);
-
         window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         window.set_cursor_visible(false);
 
@@ -78,6 +75,7 @@ impl AppState {
         reg.insert(PreparedUi::default());
         reg.insert(EngineState::default());
         reg.insert(MainCamera::new());
+        reg.insert(SceneGraph::new());
 
         schedule.execute(Stage::Init, &mut reg);
 

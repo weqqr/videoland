@@ -1575,6 +1575,7 @@ dependencies = [
  "videoland_egui",
  "videoland_render2",
  "videoland_rhi",
+ "videoland_sg",
  "winit",
 ]
 
@@ -1650,6 +1651,13 @@ dependencies = [
  "thiserror",
  "tinyvec",
  "tracing",
+]
+
+[[package]]
+name = "videoland_sg"
+version = "0.1.0"
+dependencies = [
+ "glam",
 ]
 
 [[package]]

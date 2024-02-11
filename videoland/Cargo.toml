@@ -11,6 +11,7 @@ videoland_ecs = { workspace = true }
 videoland_egui = { workspace = true }
 videoland_render2 = { workspace = true }
 videoland_rhi = { workspace = true }
+videoland_sg = { workspace = true }
 
 ahash = { workspace = true }
 bitflags = "2.4.1"
