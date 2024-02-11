@@ -1,10 +1,22 @@
 use std::any::Any;
+use std::ops::{Deref, DerefMut};
 
 use glam::{Quat, Vec3};
+use uuid::Uuid;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NodeId {
     index: usize,
+}
+
+impl NodeId {
+    pub const NONE: NodeId = NodeId { index: usize::MAX };
+}
+
+impl Default for NodeId {
+    fn default() -> Self {
+        Self::NONE
+    }
 }
 
 impl NodeId {
@@ -26,80 +38,172 @@ impl SceneGraph {
         }
     }
 
-    pub fn add_node<I: Into<N>, N: Node + 'static>(&mut self, n: I) -> NodeId {
-        let value = Spatial {
-            inner: Some(Box::new(n.into())),
-            ..Default::default()
-        };
-
+    pub fn add_node(&mut self, node: Spatial) -> NodeId {
         if let Some(id) = self.free_indexes.pop() {
-            self.nodes[id] = value;
+            self.nodes[id] = node;
             NodeId::new(id)
         } else {
             let id = self.nodes.len();
-            self.nodes.push(value);
+            self.nodes.push(node);
             NodeId::new(id)
         }
     }
 
-    pub fn node(&self, handle: NodeId) -> &Spatial {
+    pub fn spatial(&self, handle: NodeId) -> &Spatial {
         self.nodes.get(handle.index).unwrap()
     }
 
-    pub fn node_mut(&mut self, handle: NodeId) -> &mut Spatial {
+    pub fn node<T: Node>(&self, handle: NodeId) -> NodeRef<T> {
+        self.spatial(handle).node()
+    }
+
+    pub fn spatial_mut(&mut self, handle: NodeId) -> &mut Spatial {
         self.nodes.get_mut(handle.index).unwrap()
+    }
+
+    pub fn node_mut<T: Node>(&mut self, handle: NodeId) -> NodeRefMut<T> {
+        self.spatial_mut(handle).node_mut()
     }
 }
 
-pub trait Node {
+pub trait Ty {
+    fn ty() -> Uuid;
+}
+
+pub trait Node : 'static {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn name(&self) -> &str;
+    fn ty(&self) -> Uuid;
 }
 
-#[derive(Default)]
 pub struct Spatial {
     parent: NodeId,
     children: Vec<NodeId>,
     transform: Transform,
     visible: bool,
     enabled: bool,
-    inner: Option<Box<dyn Node>>,
+    node: Option<Box<dyn Node>>,
 }
 
 impl Spatial {
-    pub fn new() -> Self {
-        unimplemented!()
+    pub fn new<N: Node>(node: N) -> Self {
+        Self {
+            node: Some(Box::new(node)),
+            ..Self::empty()
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            parent: NodeId::NONE,
+            children: Vec::new(),
+            transform: Transform::default(),
+            visible: true,
+            enabled: true,
+            node: None,
+        }
+    }
+
+    pub fn node<N: Node>(&self) -> NodeRef<N> {
+        NodeRef {
+            parent: &self.parent,
+            children: &self.children,
+            transform: &self.transform,
+            visible: &self.visible,
+            enabled: &self.enabled,
+            node: self.node.as_ref().map(|x| x.as_any().downcast_ref().unwrap()),
+        }
+    }
+
+    pub fn node_mut<N: Node>(&mut self) -> NodeRefMut<N> {
+        NodeRefMut {
+            parent: &mut self.parent,
+            children: &mut self.children,
+            transform: &mut self.transform,
+            visible: &mut self.visible,
+            enabled: &mut self.enabled,
+            node: self.node.as_mut().map(|x| x.as_any_mut().downcast_mut().unwrap()),
+        }
+    }
+
+    pub fn with_parent(mut self, parent: NodeId) -> Self {
+        self.parent = parent;
+        self
+    }
+
+    pub fn with_children(mut self, parent: NodeId) -> Self {
+        self.parent = parent;
+        self
+    }
+
+    pub fn with_transform(mut self, transform: Transform) -> Self {
+        self.transform = transform;
+        self
+    }
+
+    pub fn with_visible(mut self, visible: bool) -> Self {
+        self.visible = visible;
+        self
+    }
+
+    pub fn with_enabled(mut self, enabled: bool) -> Self {
+        self.enabled = enabled;
+        self
+    }
+
+    pub fn attach_child(&mut self, child: NodeId) {
+        assert_ne!(child, NodeId::NONE, "attached node ID must not be NONE");
+
+        self.children.push(child);
+    }
+
+    pub fn detach_child(&mut self, child: NodeId) {
+        let Some(position) = self.children.iter().position(|c| *c == child) else {
+            return;
+        };
+
+        self.children.remove(position);
     }
 }
 
-impl std::ops::Deref for Spatial {
-    type Target = Spatial;
+pub struct NodeRef<'a, N: Node> {
+    pub parent: &'a NodeId,
+    pub children: &'a Vec<NodeId>,
+    pub transform: &'a Transform,
+    pub visible: &'a bool,
+    pub enabled: &'a bool,
+    pub node: Option<&'a N>,
+}
+
+impl<'a, N: Node> Deref for NodeRef<'a, N> {
+    type Target = N;
 
     fn deref(&self) -> &Self::Target {
-        self
+        self.node.unwrap()
     }
 }
 
-impl Node for Spatial {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
+pub struct NodeRefMut<'a, N: Node> {
+    pub parent: &'a mut NodeId,
+    pub children: &'a mut Vec<NodeId>,
+    pub transform: &'a mut Transform,
+    pub visible: &'a mut bool,
+    pub enabled: &'a mut bool,
+    pub node: Option<&'a mut N>,
+}
 
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
+impl<'a, N: Node> Deref for NodeRefMut<'a, N> {
+    type Target = N;
 
-    fn name(&self) -> &str {
-        "self"
+    fn deref(&self) -> &Self::Target {
+        self.node.as_ref().unwrap()
     }
 }
 
-pub struct MeshNode {/* mesh_id: ap::AssetId */}
-
-impl MeshNode {
-    pub fn new() -> Self {
-        Self {}
+impl<'a, N: Node> DerefMut for NodeRefMut<'a, N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.node.as_mut().unwrap()
     }
 }
 
@@ -107,4 +211,47 @@ impl MeshNode {
 pub struct Transform {
     pub position: Vec3,
     pub rotation: Quat,
+}
+
+pub struct Mesh {
+    mesh_id: usize,
+}
+
+impl Ty for Mesh {
+    fn ty() -> Uuid {
+        Uuid::from_bytes([0xD9, 0x10, 0x41, 0xBA, 0x99, 0xEF, 0x46, 0x72, 0x82, 0x69, 0xCB, 0x7D, 0x19, 0xA7, 0x90, 0xDD])
+    }
+}
+
+impl Node for Mesh {
+    fn as_any(&self) -> &dyn Any {
+        todo!()
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        todo!()
+    }
+
+    fn name(&self) -> &str {
+        todo!()
+    }
+
+    fn ty(&self) -> Uuid {
+        <Self as Ty>::ty()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spatialref() {
+        let mut g = SceneGraph::new();
+
+        let id = g.add_node(Spatial::empty());
+
+        g.spatial(id);
+        g.node::<Mesh>(id);
+    }
 }

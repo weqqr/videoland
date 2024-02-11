@@ -1658,6 +1658,7 @@ name = "videoland_sg"
 version = "0.1.0"
 dependencies = [
  "glam",
+ "uuid",
 ]
 
 [[package]]
