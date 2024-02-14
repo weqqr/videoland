@@ -70,7 +70,7 @@ pub trait Ty {
     fn ty() -> Uuid;
 }
 
-pub trait Node : 'static {
+pub trait Node: 'static {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn name(&self) -> &str;
@@ -112,7 +112,10 @@ impl Spatial {
             transform: &self.transform,
             visible: &self.visible,
             enabled: &self.enabled,
-            node: self.node.as_ref().map(|x| x.as_any().downcast_ref().unwrap()),
+            node: self
+                .node
+                .as_ref()
+                .map(|x| x.as_any().downcast_ref().unwrap()),
         }
     }
 
@@ -123,7 +126,10 @@ impl Spatial {
             transform: &mut self.transform,
             visible: &mut self.visible,
             enabled: &mut self.enabled,
-            node: self.node.as_mut().map(|x| x.as_any_mut().downcast_mut().unwrap()),
+            node: self
+                .node
+                .as_mut()
+                .map(|x| x.as_any_mut().downcast_mut().unwrap()),
         }
     }
 

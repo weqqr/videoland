@@ -64,8 +64,8 @@ impl AppState {
 
         reg.insert(EventQueue::<KeyEvent>::new());
 
-        window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
-        window.set_cursor_visible(false);
+        // window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
+        // window.set_cursor_visible(false);
 
         reg.insert(InputState::new());
         reg.insert(Timings::new());
@@ -80,10 +80,7 @@ impl AppState {
         reg.insert(SceneGraph::new());
         schedule.execute(Stage::Init, &mut reg);
 
-        Self {
-            reg,
-            schedule,
-        }
+        Self { reg, schedule }
     }
 
     fn handle_window_event(&mut self, event: WindowEvent) -> EventLoopIterationDecision {

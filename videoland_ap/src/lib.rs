@@ -71,7 +71,10 @@ impl Vfs {
             .unwrap()
             .insert(path.to_owned(), id);
 
-        self.id_name_map.write().unwrap().insert(id, path.to_owned());
+        self.id_name_map
+            .write()
+            .unwrap()
+            .insert(id, path.to_owned());
 
         id
     }
