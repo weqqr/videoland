@@ -92,8 +92,9 @@ impl Renderer {
             },
         );
 
-        let egui_vertex = vfs.load_shader_sync("shaders/egui.hlsl", ShaderStage::Vertex);
-        let egui_fragment = vfs.load_shader_sync("shaders/egui.hlsl", ShaderStage::Fragment);
+        let egui_vertex = vfs.load_shader_sync("/videoland/shaders/egui.hlsl", ShaderStage::Vertex);
+        let egui_fragment =
+            vfs.load_shader_sync("/videoland/shaders/egui.hlsl", ShaderStage::Fragment);
         let egui_renderer = EguiRenderer::new(device.clone(), egui_vertex, egui_fragment);
 
         let mut renderer = Self {
@@ -112,8 +113,10 @@ impl Renderer {
         };
 
         renderer.material = renderer.upload_material(&MaterialDesc {
-            vertex_shader: &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Vertex),
-            fragment_shader: &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Fragment),
+            vertex_shader: &vfs
+                .load_shader_sync("/videoland/shaders/object.hlsl", ShaderStage::Vertex),
+            fragment_shader: &vfs
+                .load_shader_sync("/videoland/shaders/object.hlsl", ShaderStage::Fragment),
         });
 
         renderer

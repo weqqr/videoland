@@ -20,25 +20,38 @@ impl AssetId {
 
 pub struct Vfs {
     shader_compiler: ShaderCompiler,
-    root: PathBuf,
+    roots: RwLock<AHashMap<String, PathBuf>>,
 
     name_id_map: RwLock<AHashMap<String, AssetId>>,
     id_name_map: RwLock<AHashMap<AssetId, String>>,
 }
 
 impl Vfs {
-    pub fn new(root: impl Into<PathBuf>) -> Self {
+    pub fn new() -> Self {
         Self {
             shader_compiler: ShaderCompiler::new(),
-            root: root.into(),
+            roots: RwLock::new(AHashMap::new()),
 
             name_id_map: RwLock::new(AHashMap::new()),
             id_name_map: RwLock::new(AHashMap::new()),
         }
     }
 
+    pub fn add_root(&self, name: String, path: impl Into<PathBuf>) {
+        self.roots.write().unwrap().insert(name, path.into());
+    }
+
     fn real_path(&self, path: &str) -> PathBuf {
-        self.root.join(path)
+        let root_name = content_root_for_path(dbg!(path)).unwrap();
+        let root = self.roots.read().unwrap();
+
+        let relative_path = path
+            .strip_prefix('/')
+            .and_then(|path| path.strip_prefix(root_name))
+            .and_then(|path| path.strip_prefix('/'))
+            .unwrap();
+
+        root.get(root_name).unwrap().join(relative_path)
     }
 
     pub fn load_binary_sync(&self, path: &str) -> Vec<u8> {
@@ -49,8 +62,8 @@ impl Vfs {
         std::fs::read_to_string(self.real_path(path)).unwrap()
     }
 
-    pub fn load_shader_sync(&self, path: &str, stage: ShaderStage) -> Shader {
-        let path = self.real_path(path);
+    pub fn load_shader_sync(&self, pats: &str, stage: ShaderStage) -> Shader {
+        let path = self.real_path(pats);
 
         self.shader_compiler
             .compile_hlsl(path.to_str().unwrap(), stage)
@@ -84,4 +97,8 @@ impl Vfs {
 
         self.load_binary_sync(&path)
     }
+}
+
+fn content_root_for_path(path: &str) -> Option<&str> {
+    path.strip_prefix('/')?.split('/').next()
 }

@@ -54,7 +54,10 @@ impl AppState {
 
         let thread_pool = Arc::new(ThreadPoolBuilder::new().num_threads(4).build().unwrap());
 
-        let vfs = Arc::new(Vfs::new("data"));
+        let vfs = Arc::new(Vfs::new());
+
+        vfs.add_root("videoland".to_owned(), "../videoland/data");
+
         let renderer = Renderer::new(&window, &vfs);
         let mut ui = Ui::new(&window);
 

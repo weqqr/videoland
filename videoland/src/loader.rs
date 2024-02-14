@@ -33,6 +33,10 @@ impl Loader {
         }
     }
 
+    pub fn vfs(&self) -> &Vfs {
+        &self.vfs
+    }
+
     pub fn load_model_async(&self, path: &str) -> AssetId {
         let id = self.vfs.acquire_asset_id_for_path(path);
 
