@@ -16,6 +16,7 @@ videoland_sg = { workspace = true }
 ahash = { workspace = true }
 bitflags = "2.4.1"
 bytemuck = { workspace = true, features = ["derive"] }
+crossbeam-channel = { workspace = true }
 egui = { workspace = true }
 egui-winit = { version = "0.25.0", default-features = false, features = ["clipboard"] }
 glam = { workspace = true, features = ["bytemuck"] }

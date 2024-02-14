@@ -1,13 +1,29 @@
 use std::path::PathBuf;
+use std::sync::RwLock;
+
+use ahash::AHashMap;
+use uuid::Uuid;
 
 use crate::shader::{Shader, ShaderCompiler, ShaderStage};
 
 pub mod model;
 pub mod shader;
 
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct AssetId(Uuid);
+
+impl AssetId {
+    fn new() -> AssetId {
+        AssetId(Uuid::new_v4())
+    }
+}
+
 pub struct Vfs {
     shader_compiler: ShaderCompiler,
     root: PathBuf,
+
+    name_id_map: RwLock<AHashMap<String, AssetId>>,
+    id_name_map: RwLock<AHashMap<AssetId, String>>,
 }
 
 impl Vfs {
@@ -15,6 +31,9 @@ impl Vfs {
         Self {
             shader_compiler: ShaderCompiler::new(),
             root: root.into(),
+
+            name_id_map: RwLock::new(AHashMap::new()),
+            id_name_map: RwLock::new(AHashMap::new()),
         }
     }
 
@@ -36,5 +55,30 @@ impl Vfs {
         self.shader_compiler
             .compile_hlsl(path.to_str().unwrap(), stage)
             .unwrap()
+    }
+
+    pub fn acquire_asset_id_for_path(&self, path: &str) -> AssetId {
+        let id = self.name_id_map.read().unwrap().get(path).cloned();
+
+        if let Some(id) = id {
+            return id;
+        }
+
+        let id = AssetId::new();
+
+        self.name_id_map
+            .write()
+            .unwrap()
+            .insert(path.to_owned(), id);
+
+        self.id_name_map.write().unwrap().insert(id, path.to_owned());
+
+        id
+    }
+
+    pub fn load_by_id(&self, id: AssetId) -> Vec<u8> {
+        let path = self.id_name_map.read().unwrap().get(&id).cloned().unwrap();
+
+        self.load_binary_sync(&path)
     }
 }

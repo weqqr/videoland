@@ -335,6 +335,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-channel"
+version = "0.5.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "176dc175b78f56c0f321911d9c8eb2b77a78a4860b9c19db83835fea1a46649b"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-deque"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1556,6 +1565,7 @@ dependencies = [
  "ahash",
  "bitflags 2.4.1",
  "bytemuck",
+ "crossbeam-channel",
  "egui",
  "egui-winit",
  "glam",
@@ -1583,6 +1593,7 @@ dependencies = [
 name = "videoland_ap"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "bytemuck",
  "glam",
  "hassle-rs",

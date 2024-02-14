@@ -96,9 +96,6 @@ impl Renderer {
         let egui_fragment = vfs.load_shader_sync("shaders/egui.hlsl", ShaderStage::Fragment);
         let egui_renderer = EguiRenderer::new(device.clone(), egui_vertex, egui_fragment);
 
-        let mesh = vfs.load_binary_sync("models/sponza.obj");
-        let mesh = videoland_ap::model::Model::from_obj(&mesh);
-
         let mut renderer = Self {
             context: device,
 
@@ -118,7 +115,6 @@ impl Renderer {
             vertex_shader: &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Vertex),
             fragment_shader: &vfs.load_shader_sync("shaders/object.hlsl", ShaderStage::Fragment),
         });
-        renderer.upload_model(&mesh);
 
         renderer
     }

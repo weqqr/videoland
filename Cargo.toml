@@ -23,6 +23,7 @@ videoland_sg = { path = "videoland_sg" }
 egui = "0.25.0"
 ahash = "0.8.6"
 bytemuck = "1.14.0"
+crossbeam-channel = "0.5.11"
 glam = "0.24.2"
 indexmap = "2.0.2"
 thiserror = "1.0.49"

@@ -4,6 +4,8 @@
 pub mod camera;
 pub mod domain;
 pub mod input;
+pub mod loader;
+pub mod nodes;
 pub mod settings;
 pub mod sys;
 pub mod timing;
@@ -29,6 +31,7 @@ use crate::ap::Vfs;
 use crate::camera::MainCamera;
 use crate::ecs::{EventQueue, Registry, Schedule, Stage};
 use crate::input::InputState;
+use crate::loader::Loader;
 use crate::render2::egui::PreparedUi;
 use crate::render2::{Extent2D, Renderer};
 use crate::settings::Settings;
@@ -43,7 +46,6 @@ pub struct EngineState {
 struct AppState {
     reg: Registry,
     schedule: Schedule,
-    thread_pool: Arc<ThreadPool>,
 }
 
 impl AppState {
@@ -52,7 +54,7 @@ impl AppState {
 
         let thread_pool = Arc::new(ThreadPoolBuilder::new().num_threads(4).build().unwrap());
 
-        let vfs = Vfs::new("data");
+        let vfs = Arc::new(Vfs::new("data"));
         let renderer = Renderer::new(&window, &vfs);
         let mut ui = Ui::new(&window);
 
@@ -69,20 +71,18 @@ impl AppState {
         reg.insert(Timings::new());
         reg.insert(ui);
         reg.insert(window);
-        reg.insert(vfs);
+        reg.insert(Loader::new(vfs, thread_pool));
         reg.insert(settings);
         reg.insert(renderer);
         reg.insert(PreparedUi::default());
         reg.insert(EngineState::default());
         reg.insert(MainCamera::new());
         reg.insert(SceneGraph::new());
-
         schedule.execute(Stage::Init, &mut reg);
 
         Self {
             reg,
             schedule,
-            thread_pool,
         }
     }
 
