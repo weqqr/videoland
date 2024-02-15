@@ -43,27 +43,27 @@ impl Ui {
             vec!["main".to_owned()],
         );
 
-        let codicon = std::fs::read("data/fonts/codicon.ttf").unwrap();
-        let tweak = FontTweak {
-            y_offset_factor: 0.15,
-            ..Default::default()
-        };
+        // let codicon = std::fs::read("data/fonts/codicon.ttf").unwrap();
+        // let tweak = FontTweak {
+        //     y_offset_factor: 0.15,
+        //     ..Default::default()
+        // };
 
-        fonts.font_data.insert(
-            "codicon".to_owned(),
-            FontData::from_owned(codicon).tweak(tweak),
-        );
+        // fonts.font_data.insert(
+        //     "codicon".to_owned(),
+        //     FontData::from_owned(codicon).tweak(tweak),
+        // );
 
-        fonts
-            .families
-            .get_mut(&FontFamily::Proportional)
-            .unwrap()
-            .push("codicon".to_owned());
+        // fonts
+        //     .families
+        //     .get_mut(&FontFamily::Proportional)
+        //     .unwrap()
+        //     .push("codicon".to_owned());
 
-        fonts.families.insert(
-            egui::FontFamily::Name("codicon".into()),
-            vec!["codicon".to_owned()],
-        );
+        // fonts.families.insert(
+        //     egui::FontFamily::Name("codicon".into()),
+        //     vec!["codicon".to_owned()],
+        // );
 
         ctx.set_fonts(fonts);
 
