@@ -1,3 +1,8 @@
+[[vk::push_constant]]
+struct PushConstants {
+    float2 viewport_size;
+} push_constants;
+
 struct PsInput {
     float4 position : SV_POSITION;
     float2 texcoord : TEXCOORD;
@@ -14,7 +19,7 @@ PsInput vs_main(
     float2 texcoord : TEXCOORD,
     uint color : COLOR
 ) {
-    float2 normalized_position = (2 * position) / float2(1600.0, 900.0) - 1.0;
+    float2 normalized_position = (2 * position) / push_constants.viewport_size - 1.0;
 
     PsInput result;
     result.position = float4(normalized_position, 0.0, 1.0);

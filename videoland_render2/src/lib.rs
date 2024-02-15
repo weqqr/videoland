@@ -1,5 +1,5 @@
 use ahash::AHashMap;
-use glam::Mat4;
+use glam::{Mat4, Vec2};
 use tracing::info;
 use uuid::Uuid;
 use videoland_ap::model::{Mesh, Model};
@@ -23,6 +23,15 @@ impl From<Extent2D> for rhi::Extent2D {
         rhi::Extent2D {
             width: extent.width,
             height: extent.height,
+        }
+    }
+}
+
+impl From<Extent2D> for Vec2 {
+    fn from(value: Extent2D) -> Self {
+        Self {
+            x: value.width as f32,
+            y: value.height as f32,
         }
     }
 }
@@ -264,7 +273,7 @@ impl Renderer {
             command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
         }
 
-        self.egui_renderer.render(&command_buffer, ui);
+        self.egui_renderer.render(&command_buffer, ui, viewport_extent.into());
 
         command_buffer.end_rendering();
 

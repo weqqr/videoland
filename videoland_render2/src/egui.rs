@@ -1,5 +1,6 @@
 use egui::epaint::Primitive;
 use egui::{ClippedPrimitive, TexturesDelta};
+use glam::Vec2;
 use rhi::BufferAllocation;
 use videoland_ap::shader::Shader;
 use videoland_rhi as rhi;
@@ -15,6 +16,12 @@ pub struct EguiRenderer {
     vertex_buffer: rhi::Buffer,
     index_buffer: rhi::Buffer,
     pipeline: rhi::Pipeline,
+}
+
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr(C)]
+struct PushConstants {
+    viewport_size: Vec2,
 }
 
 impl EguiRenderer {
@@ -72,7 +79,7 @@ impl EguiRenderer {
         }
     }
 
-    pub fn render(&mut self, cbuf: &rhi::CommandBuffer, ui: &PreparedUi) {
+    pub fn render(&mut self, cbuf: &rhi::CommandBuffer, ui: &PreparedUi, viewport_size: Vec2) {
         let mut vertex_buffer = vec![];
         let mut index_buffer = vec![];
 
@@ -124,6 +131,9 @@ impl EguiRenderer {
         cbuf.bind_pipeline(&self.pipeline);
         cbuf.bind_vertex_buffer(&self.vertex_buffer);
         cbuf.bind_index_buffer(&self.index_buffer);
+        cbuf.set_push_constants(&self.pipeline, 0, bytemuck::bytes_of(&PushConstants {
+            viewport_size,
+        }));
 
         for ((index_offset, index_count), vertex_offset) in
             indices.into_iter().zip(vertex_offsets.into_iter())
