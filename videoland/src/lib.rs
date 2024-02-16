@@ -58,7 +58,7 @@ impl AppState {
 
         vfs.add_root("videoland".to_owned(), "../videoland/data");
 
-        let renderer = Renderer::new(&window, &vfs);
+        let renderer = Renderer::new(&window);
         let mut ui = Ui::new(&window);
 
         ui.begin_frame(&window);

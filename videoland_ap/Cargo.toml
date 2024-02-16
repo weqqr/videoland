@@ -9,7 +9,6 @@ edition = "2021"
 ahash = { workspace = true }
 bytemuck = { workspace = true }
 glam = { workspace = true }
-hassle-rs = "0.10.0"
 obj = "0.10.2"
 ufbx = { git = "https://github.com/ufbx/ufbx-rust" }
 thiserror = { workspace = true }

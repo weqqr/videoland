@@ -1,5 +1,6 @@
 [workspace]
 members = ["videoland*"]
+resolver = "2"
 
 [workspace.dependencies]
 videoland = { path = "videoland" }

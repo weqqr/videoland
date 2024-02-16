@@ -4,8 +4,6 @@ use std::sync::RwLock;
 use ahash::AHashMap;
 use uuid::Uuid;
 
-use crate::shader::{Shader, ShaderCompiler, ShaderStage};
-
 pub mod model;
 pub mod shader;
 
@@ -19,7 +17,6 @@ impl AssetId {
 }
 
 pub struct Vfs {
-    shader_compiler: ShaderCompiler,
     roots: RwLock<AHashMap<String, PathBuf>>,
 
     name_id_map: RwLock<AHashMap<String, AssetId>>,
@@ -29,7 +26,6 @@ pub struct Vfs {
 impl Vfs {
     pub fn new() -> Self {
         Self {
-            shader_compiler: ShaderCompiler::new(),
             roots: RwLock::new(AHashMap::new()),
 
             name_id_map: RwLock::new(AHashMap::new()),
@@ -60,14 +56,6 @@ impl Vfs {
 
     pub fn load_string_sync(&self, path: &str) -> String {
         std::fs::read_to_string(self.real_path(path)).unwrap()
-    }
-
-    pub fn load_shader_sync(&self, pats: &str, stage: ShaderStage) -> Shader {
-        let path = self.real_path(pats);
-
-        self.shader_compiler
-            .compile_hlsl(path.to_str().unwrap(), stage)
-            .unwrap()
     }
 
     pub fn acquire_asset_id_for_path(&self, path: &str) -> AssetId {

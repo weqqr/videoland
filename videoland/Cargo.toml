@@ -20,6 +20,7 @@ crossbeam-channel = { workspace = true }
 egui = { workspace = true }
 egui-winit = { version = "0.25.0", default-features = false, features = ["clipboard"] }
 glam = { workspace = true, features = ["bytemuck"] }
+hassle-rs = "0.10.0"
 indexmap = { workspace = true }
 mlua = { version = "0.9.1", features = ["luau"] }
 physx-sys = "0.11.5"

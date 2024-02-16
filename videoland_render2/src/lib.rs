@@ -3,14 +3,14 @@ use glam::{Mat4, Vec2};
 use tracing::info;
 use uuid::Uuid;
 use videoland_ap::model::{Mesh, Model};
-use videoland_ap::shader::{Shader, ShaderStage};
-use videoland_ap::Vfs;
+use videoland_ap::shader::Shader;
 use videoland_rhi as rhi;
 use winit::window::Window;
 
-use crate::egui::{EguiRenderer, PreparedUi};
+use crate::egui::PreparedUi;
 
 pub mod egui;
+pub mod pass;
 
 #[derive(Clone, Copy)]
 pub struct Extent2D {
@@ -70,18 +70,14 @@ pub struct Renderer {
     materials: AHashMap<Uuid, GpuMaterial>,
     meshes: AHashMap<Uuid, GpuMesh>,
 
-    material: Uuid,
-
     depth_desc: rhi::TextureDesc,
     depth: rhi::Texture,
     depth_view: rhi::TextureView,
     depth_layout: rhi::TextureLayout,
-
-    egui_renderer: EguiRenderer,
 }
 
 impl Renderer {
-    pub fn new(window: &Window, vfs: &Vfs) -> Self {
+    pub fn new(window: &Window) -> Self {
         let device = rhi::Context::new(window).unwrap();
 
         let size = window.inner_size();
@@ -101,32 +97,17 @@ impl Renderer {
             },
         );
 
-        let egui_vertex = vfs.load_shader_sync("/videoland/shaders/egui.hlsl", ShaderStage::Vertex);
-        let egui_fragment =
-            vfs.load_shader_sync("/videoland/shaders/egui.hlsl", ShaderStage::Fragment);
-        let egui_renderer = EguiRenderer::new(device.clone(), egui_vertex, egui_fragment);
-
         let mut renderer = Self {
             context: device,
 
             materials: AHashMap::new(),
             meshes: AHashMap::new(),
-            material: Uuid::nil(),
 
             depth_desc,
             depth,
             depth_view,
             depth_layout: rhi::TextureLayout::Undefined,
-
-            egui_renderer,
         };
-
-        renderer.material = renderer.upload_material(&MaterialDesc {
-            vertex_shader: &vfs
-                .load_shader_sync("/videoland/shaders/object.hlsl", ShaderStage::Vertex),
-            fragment_shader: &vfs
-                .load_shader_sync("/videoland/shaders/object.hlsl", ShaderStage::Fragment),
-        });
 
         renderer
     }
@@ -254,7 +235,7 @@ impl Renderer {
             depth_attachment: &self.depth_view,
             render_area: viewport_extent.into(),
         });
-
+/*
         command_buffer.set_viewport(viewport_extent.into());
 
         let material = self.materials.get(&self.material).unwrap();
@@ -273,8 +254,9 @@ impl Renderer {
             command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
         }
 
-        self.egui_renderer.render(&command_buffer, ui, viewport_extent.into());
-
+        self.egui_renderer
+            .render(&command_buffer, ui, viewport_extent.into());
+*/
         command_buffer.end_rendering();
 
         self.context.submit_frame(command_buffer, &frame);
