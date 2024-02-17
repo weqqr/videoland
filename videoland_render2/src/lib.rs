@@ -8,9 +8,10 @@ use videoland_rhi as rhi;
 use winit::window::Window;
 
 use crate::egui::PreparedUi;
+use crate::fg::{EguiPass, FrameGraph, RenderContext, ResourceContainer};
 
 pub mod egui;
-pub mod pass;
+pub mod fg;
 
 #[derive(Clone, Copy)]
 pub struct Extent2D {
@@ -74,6 +75,8 @@ pub struct Renderer {
     depth: rhi::Texture,
     depth_view: rhi::TextureView,
     depth_layout: rhi::TextureLayout,
+
+    rc: ResourceContainer,
 }
 
 impl Renderer {
@@ -97,7 +100,7 @@ impl Renderer {
             },
         );
 
-        let mut renderer = Self {
+        Self {
             context: device,
 
             materials: AHashMap::new(),
@@ -107,9 +110,9 @@ impl Renderer {
             depth,
             depth_view,
             depth_layout: rhi::TextureLayout::Undefined,
-        };
 
-        renderer
+            rc: ResourceContainer::new(),
+        }
     }
 
     pub fn upload_material(&mut self, desc: &MaterialDesc) -> Uuid {
@@ -221,7 +224,15 @@ impl Renderer {
         let frame = self.context.acquire_next_frame();
         let frame_image = frame.image_view();
 
+        let mut fg = FrameGraph::new(&self.rc, Uuid::nil());
+
+        fg.add(EguiPass::default());
+
         let command_buffer = self.context.begin_command_buffer(&frame);
+
+        // fg.execute(RenderContext {
+        //     cmd: command_buffer,
+        // });
 
         command_buffer.texture_barrier(
             &self.depth,
@@ -235,28 +246,28 @@ impl Renderer {
             depth_attachment: &self.depth_view,
             render_area: viewport_extent.into(),
         });
-/*
-        command_buffer.set_viewport(viewport_extent.into());
+        /*
+                command_buffer.set_viewport(viewport_extent.into());
 
-        let material = self.materials.get(&self.material).unwrap();
+                let material = self.materials.get(&self.material).unwrap();
 
-        command_buffer.bind_pipeline(&material.pipeline);
+                command_buffer.bind_pipeline(&material.pipeline);
 
-        for (_, gpu_mesh) in self.meshes.iter() {
-            let pc = PushConstants {
-                camera_transform,
-                transform: Mat4::IDENTITY, // transform.matrix(),
-            };
+                for (_, gpu_mesh) in self.meshes.iter() {
+                    let pc = PushConstants {
+                        camera_transform,
+                        transform: Mat4::IDENTITY, // transform.matrix(),
+                    };
 
-            command_buffer.set_push_constants(&material.pipeline, 0, bytemuck::bytes_of(&pc));
+                    command_buffer.set_push_constants(&material.pipeline, 0, bytemuck::bytes_of(&pc));
 
-            command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
-            command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
-        }
+                    command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
+                    command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
+                }
 
-        self.egui_renderer
-            .render(&command_buffer, ui, viewport_extent.into());
-*/
+                self.egui_renderer
+                    .render(&command_buffer, ui, viewport_extent.into());
+        */
         command_buffer.end_rendering();
 
         self.context.submit_frame(command_buffer, &frame);
