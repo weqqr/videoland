@@ -10,6 +10,7 @@ pub mod settings;
 pub mod sys;
 pub mod timing;
 
+use ap::shader::ShaderStage;
 pub use glam as math;
 pub use videoland_ap as ap;
 pub use videoland_ecs as ecs;
@@ -20,18 +21,18 @@ pub use winit;
 use std::sync::Arc;
 
 use indexmap::IndexMap;
-use rayon::{ThreadPool, ThreadPoolBuilder};
+use rayon::ThreadPoolBuilder;
 use videoland_egui::Ui;
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{CursorGrabMode, Window, WindowBuilder};
+use winit::window::{Window, WindowBuilder};
 
 use crate::ap::Vfs;
 use crate::camera::MainCamera;
 use crate::ecs::{EventQueue, Registry, Schedule, Stage};
 use crate::input::InputState;
-use crate::loader::Loader;
+use crate::loader::{Loader, ShaderCompiler};
 use crate::render2::egui::PreparedUi;
 use crate::render2::{Extent2D, Renderer};
 use crate::settings::Settings;
@@ -58,7 +59,12 @@ impl AppState {
 
         vfs.add_root("videoland".to_owned(), "../videoland/data");
 
-        let renderer = Renderer::new(&window);
+        let shader_compiler = ShaderCompiler::new();
+
+        let egui_vs = shader_compiler.compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Vertex).unwrap();
+        let egui_fs = shader_compiler.compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Fragment).unwrap();
+
+        let renderer = Renderer::new(&window, egui_vs, egui_fs);
         let mut ui = Ui::new(&window);
 
         ui.begin_frame(&window);

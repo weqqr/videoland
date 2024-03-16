@@ -6,12 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-videoland_render2 = { workspace = true }
+videoland_render2 = { path = "../videoland_render2" }
 
-egui = { workspace = true }
-egui-winit = { version = "0.25.0", default-features = false, features = ["clipboard"] }
-indexmap = { workspace = true }
-winit = { version = "0.29.3" }
-
-[lints]
-workspace = true
+egui = "0.26.2"
+egui-winit = { version = "0.26.2", default-features = false, features = ["clipboard"] }
+indexmap = "2.2.5"
+winit = "0.29.14"

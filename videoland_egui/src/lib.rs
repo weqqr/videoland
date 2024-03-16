@@ -1,6 +1,6 @@
 use egui::epaint::Shadow;
 use egui::{
-    Align2, Color32, Context, FontData, FontDefinitions, FontFamily, FontTweak, Frame, Margin,
+    Align2, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Margin,
     RichText, Rounding, Stroke, Vec2,
 };
 use indexmap::IndexMap;

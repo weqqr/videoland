@@ -6,13 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ahash = { workspace = true }
-bytemuck = { workspace = true }
-glam = { workspace = true }
+ahash = "0.8.11"
+bytemuck = "1.14.3"
+glam = "0.25.0"
 obj = "0.10.2"
 ufbx = { git = "https://github.com/ufbx/ufbx-rust" }
-thiserror = { workspace = true }
-uuid = { workspace = true }
-
-[lints]
-workspace = true
+thiserror = "1.0.57"
+uuid = "1.7.0"

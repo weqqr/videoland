@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
-#[cfg(feature = "vk")]
-pub mod vk2;
+#[cfg(feature = "d3d12")]
+pub mod d3d12;
 
-#[cfg(feature = "vk")]
-pub use vk2::*;
+#[cfg(feature = "d3d12")]
+pub use d3d12::*;
 
 use bitflags::bitflags;
 
@@ -16,6 +16,16 @@ bitflags! {
         const VERTEX = 1 << 0;
         const FRAGMENT = 1 << 1;
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Offset2D {
+    pub x: u32,
+    pub y: u32,
+}
+
+impl Offset2D {
+    pub const ZERO: Self = Offset2D { x: 0, y: 0 };
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -32,14 +42,31 @@ pub struct Extent3D {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct Scissor {
+    pub offset: Offset2D,
+    pub extent: Extent2D,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Viewport {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub min_depth: f32,
+    pub max_depth: f32,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct BufferUsage(u32);
 
 bitflags! {
     impl BufferUsage: u32 {
         const VERTEX = 1 << 0;
         const INDEX = 1 << 1;
-        const TRANSFER_SRC = 1 << 2;
-        const TRANSFER_DST = 1 << 3;
+        const UNIFORM = 1 << 2;
+        const TRANSFER_SRC = 1 << 3;
+        const TRANSFER_DST = 1 << 4;
     }
 }
 
@@ -80,7 +107,36 @@ pub struct RenderPassDesc<'a> {
 pub struct PipelineDesc<'a> {
     pub vertex: &'a ShaderModule,
     pub fragment: &'a ShaderModule,
+    pub bind_group_layout: &'a BindGroupLayout,
     pub vertex_layout: VertexBufferLayout<'a>,
+}
+
+pub struct BindGroupLayoutDesc<'a> {
+    pub entries: &'a [BindGroupLayoutEntry],
+}
+
+pub struct BindGroupLayoutEntry {
+    pub binding: u32,
+    pub visibility: ShaderStages,
+    pub ty: BindingType,
+}
+
+pub enum BindingType {
+    Uniform,
+}
+
+pub enum BindingResource<'a> {
+    Buffer(&'a Buffer),
+}
+
+pub struct BindGroupDesc<'a> {
+    pub layout: &'a BindGroupLayout,
+    pub entries: &'a [BindGroupEntry<'a>],
+}
+
+pub struct BindGroupEntry<'a> {
+    pub binding: u32,
+    pub resource: BindingResource<'a>,
 }
 
 pub struct TextureDesc {
@@ -97,6 +153,7 @@ pub enum TextureLayout {
     General,
     Color,
     DepthStencil,
+    Present,
     TransferSrc,
     TransferDst,
 }
@@ -111,7 +168,8 @@ pub enum VertexFormat {
 }
 
 #[derive(Clone)]
-pub struct VertexAttribute {
+pub struct VertexAttribute<'a> {
+    pub semantic: &'a str,
     pub binding: u32,
     pub location: u32,
     pub offset: u32,
@@ -120,6 +178,6 @@ pub struct VertexAttribute {
 
 #[derive(Clone)]
 pub struct VertexBufferLayout<'a> {
-    pub attributes: &'a [VertexAttribute],
+    pub attributes: &'a [VertexAttribute<'a>],
     pub stride: u32,
 }

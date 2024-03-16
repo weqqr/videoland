@@ -154,7 +154,7 @@ impl ShaderCompiler {
 
         let profile = shader_profile_name(stage);
         let entry_point = shader_entry_point(stage);
-        let args = ["-HV 2021", "-I /", "-spirv"].as_slice();
+        let args = ["-HV 2021", "-I /"].as_slice();
         let mut include_handler = IncludeHandler::new();
         let defines = &[];
         let result = self.compiler.compile(
@@ -171,7 +171,7 @@ impl ShaderCompiler {
             Ok(v) => {
                 let data = v.get_result().unwrap().to_vec();
 
-                Ok(Shader::from_spirv_unchecked(data))
+                Ok(Shader::from_data(data))
             }
             Err(err) => {
                 let message = self

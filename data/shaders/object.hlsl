@@ -1,8 +1,8 @@
-[[vk::push_constant]]
-struct PushConstants {
-    float4x4 view_projection;
-    float4x4 transform;
-} push_constants;
+// [[vk::push_constant]]
+// struct PushConstants {
+//     float4x4 view_projection;
+//     float4x4 transform;
+// } push_constants;
 
 struct PsInput {
     float4 position : SV_POSITION;
@@ -11,14 +11,17 @@ struct PsInput {
 };
 
 PsInput vs_main(
-    float3 position : SV_POSITION,
+    float3 position : POSITION,
     float3 normal : NORMAL,
     float2 texcoord : TEXCOORD
 ) {
     PsInput result;
-    result.position = mul(push_constants.view_projection, mul(push_constants.transform, float4(position, 1.0)));
+    result.position = float4(position, 1.0);
+    result.normal = normal;
     result.texcoord = texcoord;
-    result.normal = mul((float4x3)push_constants.transform, normal);
+    // result.position = mul(push_constants.view_projection, mul(push_constants.transform, float4(position, 1.0)));
+    // result.texcoord = texcoord;
+    // result.normal = mul((float4x3)push_constants.transform, normal);
     return result;
 }
 

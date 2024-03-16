@@ -10,8 +10,12 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn from_spirv_unchecked(data: Vec<u8>) -> Self {
+    pub fn from_data(data: Vec<u8>) -> Self {
         Self { data }
+    }
+
+    pub fn data(&self) -> &[u8] {
+        &self.data
     }
 
     pub fn spirv(&self) -> &[u32] {

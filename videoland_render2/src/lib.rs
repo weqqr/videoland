@@ -7,8 +7,8 @@ use videoland_ap::shader::Shader;
 use videoland_rhi as rhi;
 use winit::window::Window;
 
-use crate::egui::PreparedUi;
-use crate::fg::{EguiPass, FrameGraph, RenderContext, ResourceContainer};
+use crate::egui::{EguiRenderer, PreparedUi};
+use crate::fg::ResourceContainer;
 
 pub mod egui;
 pub mod fg;
@@ -50,6 +50,7 @@ pub struct MaterialDesc<'a> {
 }
 
 struct GpuMaterial {
+    bind_group_layout: rhi::BindGroupLayout,
     pipeline: rhi::Pipeline,
 }
 
@@ -71,66 +72,60 @@ pub struct Renderer {
     materials: AHashMap<Uuid, GpuMaterial>,
     meshes: AHashMap<Uuid, GpuMesh>,
 
-    depth_desc: rhi::TextureDesc,
-    depth: rhi::Texture,
-    depth_view: rhi::TextureView,
-    depth_layout: rhi::TextureLayout,
-
     rc: ResourceContainer,
+
+    egui_renderer: EguiRenderer,
 }
 
 impl Renderer {
-    pub fn new(window: &Window) -> Self {
-        let device = rhi::Context::new(window).unwrap();
-
+    pub fn new(window: &Window, egui_vs: Shader, egui_fs: Shader) -> Self {
         let size = window.inner_size();
-        let depth_desc = rhi::TextureDesc {
-            extent: rhi::Extent3D {
+
+        let context = rhi::Context::new(
+            window,
+            rhi::Extent2D {
                 width: size.width,
                 height: size.height,
-                depth: 1,
             },
-        };
+        )
+        .unwrap();
 
-        let depth = device.create_texture(&depth_desc);
-        let depth_view = device.create_texture_view(
-            &depth,
-            &rhi::TextureViewDesc {
-                extent: depth_desc.extent,
-            },
-        );
+        let egui_renderer = EguiRenderer::new(&context, egui_vs, egui_fs);
 
         Self {
-            context: device,
+            context,
 
             materials: AHashMap::new(),
             meshes: AHashMap::new(),
 
-            depth_desc,
-            depth,
-            depth_view,
-            depth_layout: rhi::TextureLayout::Undefined,
-
             rc: ResourceContainer::new(),
+
+            egui_renderer,
         }
     }
 
     pub fn upload_material(&mut self, desc: &MaterialDesc) -> Uuid {
         let vs = self
             .context
-            .create_shader_module(desc.vertex_shader.spirv());
+            .create_shader_module(desc.vertex_shader.data().to_owned());
         let fs = self
             .context
-            .create_shader_module(desc.fragment_shader.spirv());
+            .create_shader_module(desc.fragment_shader.data().to_owned());
+
+        let bind_group_layout = self
+            .context
+            .create_bind_group_layout(&rhi::BindGroupLayoutDesc { entries: &[] });
 
         let pipeline = self.context.create_pipeline(&rhi::PipelineDesc {
             vertex: &vs,
             fragment: &fs,
+            bind_group_layout: &bind_group_layout,
             vertex_layout: rhi::VertexBufferLayout {
                 stride: 8 * 4,
                 attributes: &[
                     // position
                     rhi::VertexAttribute {
+                        semantic: "POSITION",
                         binding: 0,
                         format: rhi::VertexFormat::Float32x3,
                         offset: 0,
@@ -138,6 +133,7 @@ impl Renderer {
                     },
                     // normal
                     rhi::VertexAttribute {
+                        semantic: "NORMAL",
                         binding: 0,
                         format: rhi::VertexFormat::Float32x3,
                         offset: 3 * 4,
@@ -145,6 +141,7 @@ impl Renderer {
                     },
                     // texcoord
                     rhi::VertexAttribute {
+                        semantic: "TEXCOORD",
                         binding: 0,
                         format: rhi::VertexFormat::Float32x2,
                         offset: 6 * 4,
@@ -156,7 +153,13 @@ impl Renderer {
 
         let id = Uuid::new_v4();
 
-        self.materials.insert(id, GpuMaterial { pipeline });
+        self.materials.insert(
+            id,
+            GpuMaterial {
+                bind_group_layout,
+                pipeline,
+            },
+        );
 
         id
     }
@@ -179,7 +182,7 @@ impl Renderer {
             size: mesh_data_size,
         });
 
-        staging.write_data(0, bytemuck::cast_slice(mesh.data()));
+        // staging.write_data(0, bytemuck::cast_slice(mesh.data()));
 
         let gpu_buffer = self.context.create_buffer(rhi::BufferAllocation {
             usage: rhi::BufferUsage::VERTEX | rhi::BufferUsage::TRANSFER_DST,
@@ -187,9 +190,9 @@ impl Renderer {
             size: mesh_data_size,
         });
 
-        self.context.immediate_submit(|cmd| {
-            cmd.copy_buffer_to_buffer(&staging, &gpu_buffer, mesh_data_size);
-        });
+        // self.context.immediate_submit(|cmd| {
+        //     cmd.copy_buffer_to_buffer(&staging, &gpu_buffer, mesh_data_size);
+        // });
 
         self.meshes.insert(
             renderable_mesh_id,
@@ -202,53 +205,55 @@ impl Renderer {
 
     pub fn resize(&mut self, size: Extent2D) {
         self.context.resize_swapchain(size.into());
-
-        self.depth_desc.extent.width = size.width;
-        self.depth_desc.extent.height = size.height;
-
-        let mut depth = self.context.create_texture(&self.depth_desc);
-        let mut depth_view = self.context.create_texture_view(
-            &depth,
-            &rhi::TextureViewDesc {
-                extent: self.depth_desc.extent,
-            },
-        );
-
-        std::mem::swap(&mut self.depth, &mut depth);
-        std::mem::swap(&mut self.depth_view, &mut depth_view);
-
-        self.depth_layout = rhi::TextureLayout::Undefined;
     }
 
-    pub fn render(&mut self, camera_transform: Mat4, viewport_extent: Extent2D, ui: &PreparedUi) {
+    pub fn render(
+        &mut self,
+        camera_transform: Mat4,
+        prepared_ui: &PreparedUi,
+        viewport_extent: Extent2D,
+    ) {
         let frame = self.context.acquire_next_frame();
-        let frame_image = frame.image_view();
 
-        let mut fg = FrameGraph::new(&self.rc, Uuid::nil());
+        let command_buffer = self.context.begin_command_buffer();
 
-        fg.add(EguiPass::default());
+        command_buffer.set_scissor(rhi::Scissor {
+            offset: rhi::Offset2D::ZERO,
+            extent: viewport_extent.into(),
+        });
 
-        let command_buffer = self.context.begin_command_buffer(&frame);
-
-        // fg.execute(RenderContext {
-        //     cmd: command_buffer,
-        // });
+        command_buffer.set_viewport(rhi::Viewport {
+            x: 0.0,
+            y: 0.0,
+            width: viewport_extent.width as f32,
+            height: viewport_extent.height as f32,
+            min_depth: 0.0,
+            max_depth: 1.0,
+        });
 
         command_buffer.texture_barrier(
-            &self.depth,
-            self.depth_layout,
-            rhi::TextureLayout::DepthStencil,
+            rhi::TextureLayout::Present,
+            rhi::TextureLayout::Color,
+            frame.texture(),
         );
-        self.depth_layout = rhi::TextureLayout::DepthStencil;
 
-        command_buffer.begin_rendering(rhi::RenderPassDesc {
-            color_attachment: frame_image,
-            depth_attachment: &self.depth_view,
-            render_area: viewport_extent.into(),
-        });
+        command_buffer.set_render_target(frame.texture());
+        command_buffer.clear_texture(frame.texture(), [0.9, 0.6, 0.3, 1.0]);
+
+        self.egui_renderer.render(
+            &self.context,
+            &command_buffer,
+            prepared_ui,
+            viewport_extent.into(),
+        );
+
+        command_buffer.texture_barrier(
+            rhi::TextureLayout::Color,
+            rhi::TextureLayout::Present,
+            frame.texture(),
+        );
+
         /*
-                command_buffer.set_viewport(viewport_extent.into());
-
                 let material = self.materials.get(&self.material).unwrap();
 
                 command_buffer.bind_pipeline(&material.pipeline);
@@ -268,8 +273,9 @@ impl Renderer {
                 self.egui_renderer
                     .render(&command_buffer, ui, viewport_extent.into());
         */
-        command_buffer.end_rendering();
 
-        self.context.submit_frame(command_buffer, &frame);
+        self.context.submit_command_buffer(command_buffer);
+
+        self.context.submit_frame();
     }
 }

@@ -6,17 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-videoland_ap = { workspace = true }
-videoland_ecs = { workspace = true }
-videoland_rhi = { workspace = true }
+videoland_ap = { path = "../videoland_ap" }
+videoland_ecs = { path = "../videoland_ecs" }
+videoland_rhi = { path = "../videoland_rhi" }
 
-ahash = { workspace = true }
-bytemuck = { workspace = true, features = ["derive"] }
-egui = { workspace = true, features = ["bytemuck"] }
-glam = { workspace = true, features = ["bytemuck"] }
-tracing = { workspace = true }
-uuid = { workspace = true, features = ["v4"] }
-winit = { workspace = true, features = ["rwh_05"] }
-
-[lints]
-workspace = true
+ahash = "0.8.11"
+bytemuck = { version = "1.14.3", features = ["derive"] }
+egui = { version = "0.26.2", features = ["bytemuck"] }
+glam = { version = "0.25.0", features = ["bytemuck"] }
+tracing = "0.1.40"
+uuid = { version = "1.7.0", features = ["v4"] }
+winit = { version = "0.29.14", features = ["rwh_05"] }

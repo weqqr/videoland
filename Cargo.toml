@@ -1,28 +1,3 @@
 [workspace]
 members = ["videoland*"]
 resolver = "2"
-
-[workspace.dependencies]
-videoland = { path = "videoland" }
-videoland_ap = { path = "videoland_ap" }
-videoland_ecs = { path = "videoland_ecs" }
-videoland_editor = { path = "videoland_editor" }
-videoland_egui = { path = "videoland_egui" }
-videoland_render2 = { path = "videoland_render2" }
-videoland_rhi = { path = "videoland_rhi" }
-videoland_sg = { path = "videoland_sg" }
-
-egui = "0.25.0"
-ahash = "0.8.6"
-bytemuck = "1.14.0"
-crossbeam-channel = "0.5.11"
-glam = "0.24.2"
-indexmap = "2.0.2"
-thiserror = "1.0.49"
-tracing = "0.1.40"
-uuid = "1.4.1"
-winit = "0.29.3"
-
-[workspace.lints.clippy]
-single_match = "allow"
-new_without_default = "allow"

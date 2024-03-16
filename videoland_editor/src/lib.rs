@@ -29,6 +29,7 @@ pub struct EditorData<'a> {
 }
 
 struct Behavior<'a> {
+    #[allow(dead_code)]
     data: EditorData<'a>,
 }
 

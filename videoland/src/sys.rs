@@ -33,9 +33,5 @@ pub fn render(
         height: window_size.height,
     };
 
-    renderer.render(
-        camera.camera.view_projection(extent.aspect_ratio()),
-        extent,
-        &prepared_ui,
-    );
+    renderer.render(camera.camera.view_projection(extent.aspect_ratio()), &prepared_ui, extent);
 }
