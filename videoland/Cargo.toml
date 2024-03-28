@@ -17,8 +17,8 @@ ahash = "0.8.11"
 bitflags = "2.4.1"
 bytemuck = { version = "1.14.3", features = ["derive"] }
 crossbeam-channel = "0.5.12"
-egui = "0.26.2"
-egui-winit = { version = "0.26.2", default-features = false, features = ["clipboard"] }
+egui = "0.27.0"
+egui-winit = { version = "0.27.0", default-features = false, features = ["clipboard"] }
 glam = { version = "0.25.0", features = ["bytemuck"] }
 hassle-rs = "0.10.0"
 indexmap = "2.2.5"

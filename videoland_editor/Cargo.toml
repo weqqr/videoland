@@ -9,6 +9,6 @@ edition = "2021"
 videoland_ecs = { path = "../videoland_ecs" }
 videoland_egui = { path = "../videoland_egui" }
 
-egui = "0.26.2"
-egui_tiles = "0.7.2"
+egui = "0.27.0"
+egui_tiles = "0.8.0"
 indexmap = "2.2.5"

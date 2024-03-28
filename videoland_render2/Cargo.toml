@@ -12,7 +12,7 @@ videoland_rhi = { path = "../videoland_rhi" }
 
 ahash = "0.8.11"
 bytemuck = { version = "1.14.3", features = ["derive"] }
-egui = { version = "0.26.2", features = ["bytemuck"] }
+egui = { version = "0.27.0", features = ["bytemuck"] }
 glam = { version = "0.25.0", features = ["bytemuck"] }
 tracing = "0.1.40"
 uuid = { version = "1.7.0", features = ["v4"] }
