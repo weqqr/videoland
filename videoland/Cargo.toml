@@ -23,7 +23,6 @@ glam = { version = "0.25.0", features = ["bytemuck"] }
 hassle-rs = "0.10.0"
 indexmap = "2.2.5"
 physx-sys = "0.11.5"
-raw-window-handle = "0.5.0"
 rayon = "1.8.0"
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0.107"
@@ -32,7 +31,3 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.17"
 uuid = { version = "1.7.0", features = ["v4"] }
 winit = "0.29.14"
-
-[features]
-default = ["vk"]
-vk = []
