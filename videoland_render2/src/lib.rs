@@ -182,7 +182,7 @@ impl Renderer {
             size: mesh_data_size,
         });
 
-        // staging.write_data(0, bytemuck::cast_slice(mesh.data()));
+        staging.write_data(0, bytemuck::cast_slice(mesh.data()));
 
         let gpu_buffer = self.context.create_buffer(rhi::BufferAllocation {
             usage: rhi::BufferUsage::VERTEX | rhi::BufferUsage::TRANSFER_DST,
@@ -190,9 +190,9 @@ impl Renderer {
             size: mesh_data_size,
         });
 
-        // self.context.immediate_submit(|cmd| {
-        //     cmd.copy_buffer_to_buffer(&staging, &gpu_buffer, mesh_data_size);
-        // });
+        self.context.immediate_submit(|cmd| {
+            cmd.copy_buffer_to_buffer(&staging, &gpu_buffer, mesh_data_size);
+        });
 
         self.meshes.insert(
             renderable_mesh_id,

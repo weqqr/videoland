@@ -206,6 +206,12 @@ impl CommandBuffer {
         }
     }
 
+    pub fn copy_buffer_to_buffer(&self, src: &Buffer, dst: &Buffer, len: u64) {
+        unsafe {
+            self.command_list.CopyBufferRegion(&dst.buffer, 0, &src.buffer, 0, len);
+        }
+    }
+
     pub fn bind_index_buffer(&self, vertex_buffer: &Buffer) {
         unsafe {
             let view = D3D12_INDEX_BUFFER_VIEW {
@@ -617,6 +623,33 @@ impl Context {
             let pso: ID3D12PipelineState = self.device.CreateGraphicsPipelineState(&desc).unwrap();
 
             Pipeline { pso }
+        }
+    }
+
+    pub fn immediate_submit(&self, callback: impl FnOnce(&CommandBuffer)) {
+        unsafe {
+            let command_list: ID3D12GraphicsCommandList = self
+                .device
+                .CreateCommandList(
+                    0,
+                    D3D12_COMMAND_LIST_TYPE_DIRECT,
+                    &self.command_allocator,
+                    None,
+                )
+                .unwrap();
+
+            let cmd = CommandBuffer {
+                rtv_dsv_allocator: Rc::clone(&self.rtv_dsv_allocator),
+                device: self.device.clone(),
+                gpu_descriptor_allocator: Rc::clone(&self.gpu_descriptor_allocator),
+                command_list,
+            };
+
+            callback(&cmd);
+
+            cmd.command_list.Close().unwrap();
+            let command_list = Some(cmd.command_list.cast().unwrap());
+            self.command_queue.ExecuteCommandLists(&[command_list]);
         }
     }
 
