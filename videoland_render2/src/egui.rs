@@ -15,7 +15,6 @@ pub struct EguiRenderer {
     index_buffer: rhi::Buffer,
     uniform_buffer: rhi::Buffer,
 
-    bind_group: rhi::BindGroup,
     bind_group_layout: rhi::BindGroupLayout,
     pipeline: rhi::Pipeline,
 }
@@ -93,20 +92,11 @@ impl EguiRenderer {
             size: std::mem::size_of::<Uniforms>() as u64,
         });
 
-        let bind_group = context.create_bind_group(&rhi::BindGroupDesc {
-            layout: &bind_group_layout,
-            entries: &[rhi::BindGroupEntry {
-                binding: 0,
-                resource: rhi::BindingResource::Buffer(&uniform_buffer),
-            }],
-        });
-
         Self {
             vertex_buffer,
             index_buffer,
             uniform_buffer,
 
-            bind_group,
             bind_group_layout,
             pipeline,
         }
@@ -209,7 +199,15 @@ impl EguiRenderer {
             cmd.copy_buffer_to_texture(&texture_upload_buffer, &texture);
         }
 
-        cmd.set_bind_group(&self.bind_group);
+        let bind_group = context.create_bind_group(&rhi::BindGroupDesc {
+            layout: &self.bind_group_layout,
+            entries: &[rhi::BindGroupEntry {
+                binding: 0,
+                resource: rhi::BindingResource::Buffer(&self.uniform_buffer),
+            }],
+        });
+
+        cmd.set_bind_group(&bind_group);
 
         cmd.bind_pipeline(&self.pipeline);
 

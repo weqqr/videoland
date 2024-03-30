@@ -745,14 +745,6 @@ impl Context {
         }
     }
 
-    pub fn create_texture_view(
-        &self,
-        texture: &Texture,
-        desc: &crate::TextureViewDesc,
-    ) -> TextureView {
-        unimplemented!()
-    }
-
     pub fn resize_swapchain(&mut self, extent: crate::Extent2D) {
         unsafe {
             self.wait_for_gpu();
