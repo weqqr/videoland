@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::ffi::{c_void, CString};
 use std::mem::ManuallyDrop;
 use std::rc::Rc;
@@ -12,8 +13,8 @@ use windows::Win32::Graphics::{Direct3D::*, Direct3D12::*, Dxgi::*};
 use windows::Win32::System::Threading::*;
 
 use crate::{
-    BindGroupLayoutDesc, BindingResource, BufferLocation, Extent2D, Scissor, TextureLayout,
-    VertexFormat, Viewport,
+    BindGroupLayoutDesc, BindingResource, BufferLocation, Extent2D, Scissor, TextureFormat,
+    TextureLayout, VertexFormat, Viewport,
 };
 
 const DEBUG_ENABLED: bool = true;
@@ -88,6 +89,7 @@ pub struct CommandBuffer {
     device: ID3D12Device5,
     gpu_descriptor_allocator: Rc<Mutex<DescriptorAllocator>>,
     command_list: ID3D12GraphicsCommandList,
+    referenced_objects: Rc<RefCell<Vec<ID3D12Resource>>>,
 }
 
 impl CommandBuffer {
@@ -186,8 +188,6 @@ impl CommandBuffer {
 
     pub fn bind_pipeline(&self, pipeline: &Pipeline) {
         unsafe {
-            // self.command_list
-            //     .SetGraphicsRootSignature(&pipeline.root_signature);
             self.command_list.SetPipelineState(&pipeline.pso);
         }
     }
@@ -207,8 +207,53 @@ impl CommandBuffer {
     }
 
     pub fn copy_buffer_to_buffer(&self, src: &Buffer, dst: &Buffer, len: u64) {
+        self.referenced_objects.borrow_mut().push(src.buffer.clone());
+        self.referenced_objects.borrow_mut().push(dst.buffer.clone());
+
         unsafe {
-            self.command_list.CopyBufferRegion(&dst.buffer, 0, &src.buffer, 0, len);
+            self.command_list
+                .CopyBufferRegion(&dst.buffer, 0, &src.buffer, 0, len);
+        }
+    }
+
+    pub fn copy_buffer_to_texture(&self, buffer: &Buffer, texture: &Texture) {
+        self.referenced_objects.borrow_mut().push(buffer.buffer.clone());
+        self.referenced_objects.borrow_mut().push(texture.texture.clone());
+
+        unsafe {
+            let dst = D3D12_TEXTURE_COPY_LOCATION {
+                pResource: std::mem::transmute_copy(&texture.texture),
+                Type: D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+                Anonymous: D3D12_TEXTURE_COPY_LOCATION_0 {
+                    SubresourceIndex: 0,
+                },
+            };
+
+            let texture_desc = texture.texture.GetDesc();
+
+            let mut layouts = vec![Default::default(); 1];
+
+            self.device.GetCopyableFootprints(
+                &texture_desc,
+                0,
+                1,
+                0,
+                Some(layouts.as_mut_ptr()),
+                None,
+                None,
+                None,
+            );
+
+            let src = D3D12_TEXTURE_COPY_LOCATION {
+                pResource: std::mem::transmute_copy(&buffer.buffer),
+                Type: D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+                Anonymous: D3D12_TEXTURE_COPY_LOCATION_0 {
+                    PlacedFootprint: layouts[0],
+                },
+            };
+
+            self.command_list
+                .CopyTextureRegion(&dst, 0, 0, 0, &src, None);
         }
     }
 
@@ -263,6 +308,7 @@ pub struct Context {
     rtv_dsv_allocator: Rc<RtvDsvAllocator>,
     descriptor_allocator: Rc<Mutex<DescriptorAllocator>>,
     gpu_descriptor_allocator: Rc<Mutex<DescriptorAllocator>>,
+    frame_resources: Rc<RefCell<Vec<ID3D12Resource>>>,
 
     fence: ID3D12Fence,
     fence_value: u64,
@@ -374,6 +420,7 @@ impl Context {
                 rtv_dsv_allocator,
                 descriptor_allocator,
                 gpu_descriptor_allocator,
+                frame_resources: Rc::new(RefCell::new(Vec::new())),
 
                 fence,
                 fence_value,
@@ -385,8 +432,12 @@ impl Context {
     }
 
     unsafe fn wait_for_gpu(&mut self) {
-        self.command_queue.Signal(&self.fence, self.fence_value).unwrap();
-        self.fence.SetEventOnCompletion(self.fence_value, self.fence_event).unwrap();
+        self.command_queue
+            .Signal(&self.fence, self.fence_value)
+            .unwrap();
+        self.fence
+            .SetEventOnCompletion(self.fence_value, self.fence_event)
+            .unwrap();
         WaitForSingleObject(self.fence_event, INFINITE);
         self.fence_value += 1;
     }
@@ -648,6 +699,7 @@ impl Context {
                 device: self.device.clone(),
                 gpu_descriptor_allocator: Rc::clone(&self.gpu_descriptor_allocator),
                 command_list,
+                referenced_objects: Rc::clone(&self.frame_resources),
             };
 
             callback(&cmd);
@@ -659,7 +711,38 @@ impl Context {
     }
 
     pub fn create_texture(&self, desc: &crate::TextureDesc) -> Texture {
-        unimplemented!()
+        unsafe {
+            let mut texture: Option<ID3D12Resource> = None;
+            self.device
+                .CreateCommittedResource(
+                    &D3D12_HEAP_PROPERTIES {
+                        Type: D3D12_HEAP_TYPE_DEFAULT,
+                        ..Default::default()
+                    },
+                    D3D12_HEAP_FLAG_NONE,
+                    &D3D12_RESOURCE_DESC {
+                        Dimension: D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+                        Format: desc.format.into(),
+                        Width: desc.extent.width as u64,
+                        Height: desc.extent.height,
+                        DepthOrArraySize: desc.extent.depth as u16,
+                        MipLevels: 1,
+                        SampleDesc: DXGI_SAMPLE_DESC {
+                            Count: 1,
+                            Quality: 0,
+                        },
+                        ..Default::default()
+                    },
+                    D3D12_RESOURCE_STATE_COPY_DEST,
+                    None,
+                    &mut texture,
+                )
+                .unwrap();
+
+            Texture {
+                texture: texture.unwrap(),
+            }
+        }
     }
 
     pub fn create_texture_view(
@@ -692,6 +775,7 @@ impl Context {
     pub fn acquire_next_frame(&mut self) -> SwapchainFrame {
         unsafe {
             self.command_allocator.Reset().unwrap();
+            self.frame_resources.borrow_mut().clear();
             self.frame_index = self.swapchain.GetCurrentBackBufferIndex();
         }
 
@@ -732,6 +816,7 @@ impl Context {
                 device: self.device.clone(),
                 gpu_descriptor_allocator: Rc::clone(&self.gpu_descriptor_allocator),
                 command_list,
+                referenced_objects: Rc::clone(&self.frame_resources),
             }
         }
     }
@@ -946,6 +1031,15 @@ impl From<VertexFormat> for DXGI_FORMAT {
             VertexFormat::Float32x2 => DXGI_FORMAT_R32G32_FLOAT,
             VertexFormat::Float32x3 => DXGI_FORMAT_R32G32B32_FLOAT,
             VertexFormat::Float32x4 => DXGI_FORMAT_R32G32B32A32_FLOAT,
+        }
+    }
+}
+
+impl From<TextureFormat> for DXGI_FORMAT {
+    fn from(value: TextureFormat) -> Self {
+        match value {
+            TextureFormat::R8G8B8A8Uint => DXGI_FORMAT_R8G8B8A8_UINT,
+            TextureFormat::R32Float => DXGI_FORMAT_R32_FLOAT,
         }
     }
 }

@@ -140,11 +140,18 @@ pub struct BindGroupEntry<'a> {
 }
 
 pub struct TextureDesc {
+    pub format: TextureFormat,
     pub extent: Extent3D,
 }
 
 pub struct TextureViewDesc {
     pub extent: Extent3D,
+}
+
+#[derive(Clone, Copy)]
+pub enum TextureFormat {
+    R8G8B8A8Uint,
+    R32Float,
 }
 
 #[derive(Clone, Copy)]

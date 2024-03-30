@@ -1,5 +1,5 @@
 use egui::epaint::Primitive;
-use egui::{ClippedPrimitive, TexturesDelta};
+use egui::{ClippedPrimitive, ImageData, TexturesDelta};
 use glam::Vec2;
 use videoland_ap::shader::Shader;
 use videoland_rhi as rhi;
@@ -112,7 +112,13 @@ impl EguiRenderer {
         }
     }
 
-    pub fn render(&mut self, context: &rhi::Context, cbuf: &rhi::CommandBuffer, ui: &PreparedUi, viewport_size: Vec2) {
+    pub fn render(
+        &mut self,
+        context: &rhi::Context,
+        cmd: &rhi::CommandBuffer,
+        ui: &PreparedUi,
+        viewport_size: Vec2,
+    ) {
         let mut vertex_buffer = vec![];
         let mut index_buffer = vec![];
 
@@ -166,22 +172,54 @@ impl EguiRenderer {
             ..Default::default()
         };
 
-        self.uniform_buffer.write_data(0, bytemuck::bytes_of(&uniform_buffer_data));
-        cbuf.set_bind_group(&self.bind_group);
+        self.uniform_buffer
+            .write_data(0, bytemuck::bytes_of(&uniform_buffer_data));
 
-        cbuf.bind_pipeline(&self.pipeline);
+        for (id, texture) in &ui.textures_delta.set {
+            let (data, size, format) = match &texture.image {
+                ImageData::Color(color) => (
+                    bytemuck::cast_slice(&color.pixels),
+                    color.size,
+                    rhi::TextureFormat::R8G8B8A8Uint,
+                ),
+                ImageData::Font(font) => (
+                    bytemuck::cast_slice(&font.pixels),
+                    font.size,
+                    rhi::TextureFormat::R32Float,
+                ),
+            };
 
-        cbuf.bind_vertex_buffer(&self.vertex_buffer, 5 * 4);
-        cbuf.bind_index_buffer(&self.index_buffer);
+            let texture = context.create_texture(&rhi::TextureDesc {
+                format,
+                extent: rhi::Extent3D {
+                    width: size[0] as u32,
+                    height: size[1] as u32,
+                    depth: 1,
+                },
+            });
 
-        // cbuf.set_push_constants(&self.pipeline, 0, bytemuck::bytes_of(&PushConstants {
-        //     viewport_size,
-        // }));
+            let texture_upload_buffer = context.create_buffer(rhi::BufferAllocation {
+                usage: rhi::BufferUsage::TRANSFER_SRC,
+                location: rhi::BufferLocation::Cpu,
+                size: data.len() as u64,
+            });
+
+            texture_upload_buffer.write_data(0, data);
+
+            cmd.copy_buffer_to_texture(&texture_upload_buffer, &texture);
+        }
+
+        cmd.set_bind_group(&self.bind_group);
+
+        cmd.bind_pipeline(&self.pipeline);
+
+        cmd.bind_vertex_buffer(&self.vertex_buffer, 5 * 4);
+        cmd.bind_index_buffer(&self.index_buffer);
 
         for ((index_offset, index_count), vertex_offset) in
             indices.into_iter().zip(vertex_offsets.into_iter())
         {
-            cbuf.draw_indexed(
+            cmd.draw_indexed(
                 index_count as u32,
                 1,
                 index_offset as u32,
@@ -189,6 +227,5 @@ impl EguiRenderer {
                 0,
             );
         }
-
     }
 }
