@@ -1,8 +1,7 @@
-use std::cell::RefCell;
 use std::ffi::{c_void, CString};
 use std::mem::ManuallyDrop;
 use std::rc::Rc;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use tracing::info;
@@ -75,7 +74,7 @@ pub struct ShaderModule {
 }
 
 pub struct SwapchainFrame {
-    texture: Rc<Texture>,
+    texture: Texture,
 }
 
 impl SwapchainFrame {
@@ -85,11 +84,9 @@ impl SwapchainFrame {
 }
 
 pub struct CommandBuffer {
-    rtv_dsv_allocator: Rc<RtvDsvAllocator>,
     device: ID3D12Device5,
-    gpu_descriptor_allocator: Rc<Mutex<DescriptorAllocator>>,
     command_list: ID3D12GraphicsCommandList,
-    referenced_objects: Rc<RefCell<Vec<ID3D12Resource>>>,
+    frame_context: Rc<Mutex<FrameContext>>,
 }
 
 impl CommandBuffer {
@@ -144,6 +141,9 @@ impl CommandBuffer {
     pub fn set_render_target(&self, target: &Texture) {
         unsafe {
             let descriptor = self
+                .frame_context
+                .lock()
+                .unwrap()
                 .rtv_dsv_allocator
                 .create_rtv_descriptor(&target.texture);
 
@@ -155,6 +155,9 @@ impl CommandBuffer {
     pub fn clear_texture(&self, texture: &Texture, color: [f32; 4]) {
         unsafe {
             let descriptor = self
+                .frame_context
+                .lock()
+                .unwrap()
                 .rtv_dsv_allocator
                 .create_rtv_descriptor(&texture.texture);
             self.command_list
@@ -169,9 +172,10 @@ impl CommandBuffer {
 
             let cpu_range = &bind_group.descriptor_range;
             let gpu_range = self
-                .gpu_descriptor_allocator
+                .frame_context
                 .lock()
                 .unwrap()
+                .gpu_descriptor_allocator
                 .allocate_range(bind_group.descriptor_range.size);
 
             self.device.CopyDescriptorsSimple(
@@ -207,8 +211,10 @@ impl CommandBuffer {
     }
 
     pub fn copy_buffer_to_buffer(&self, src: &Buffer, dst: &Buffer, len: u64) {
-        self.referenced_objects.borrow_mut().push(src.buffer.clone());
-        self.referenced_objects.borrow_mut().push(dst.buffer.clone());
+        let mut fc = self.frame_context.lock().unwrap();
+
+        fc.used_resources.push(src.buffer.clone());
+        fc.used_resources.push(dst.buffer.clone());
 
         unsafe {
             self.command_list
@@ -217,8 +223,10 @@ impl CommandBuffer {
     }
 
     pub fn copy_buffer_to_texture(&self, buffer: &Buffer, texture: &Texture) {
-        self.referenced_objects.borrow_mut().push(buffer.buffer.clone());
-        self.referenced_objects.borrow_mut().push(texture.texture.clone());
+        let mut fc = self.frame_context.lock().unwrap();
+
+        fc.used_resources.push(buffer.buffer.clone());
+        fc.used_resources.push(texture.texture.clone());
 
         unsafe {
             let dst = D3D12_TEXTURE_COPY_LOCATION {
@@ -298,23 +306,37 @@ pub struct BindGroup {
     descriptor_range: DescriptorRange,
 }
 
+struct FrameContext {
+    command_allocator: ID3D12CommandAllocator,
+    rtv_dsv_allocator: RtvDsvAllocator,
+    descriptor_allocator: DescriptorAllocator,
+    gpu_descriptor_allocator: DescriptorAllocator,
+    render_target: Option<Texture>,
+    fence_value: u64,
+
+    // this is a ref-counting garbage collector
+    used_resources: Vec<ID3D12Resource>,
+}
+
 pub struct Context {
     dxgi_factory: IDXGIFactory6,
     device: ID3D12Device5,
     swapchain: IDXGISwapChain3,
     command_queue: ID3D12CommandQueue,
-    render_targets: Vec<Rc<Texture>>,
-    command_allocator: ID3D12CommandAllocator,
-    rtv_dsv_allocator: Rc<RtvDsvAllocator>,
-    descriptor_allocator: Rc<Mutex<DescriptorAllocator>>,
-    gpu_descriptor_allocator: Rc<Mutex<DescriptorAllocator>>,
-    frame_resources: Rc<RefCell<Vec<ID3D12Resource>>>,
+    frame_contexts: Vec<Rc<Mutex<FrameContext>>>,
 
     fence: ID3D12Fence,
-    fence_value: u64,
     fence_event: HANDLE,
 
     frame_index: u32,
+}
+
+impl Drop for Context {
+    fn drop(&mut self) {
+        unsafe {
+            self.wait_for_gpu();
+        }
+    }
 }
 
 impl Context {
@@ -380,50 +402,47 @@ impl Context {
                 .cast()
                 .unwrap();
 
-            let mut render_targets = Vec::new();
+            let mut frame_contexts = Vec::new();
 
             for i in 0..FRAME_COUNT {
                 let render_target: ID3D12Resource = swapchain.GetBuffer(i).unwrap();
 
-                render_targets.push(Rc::new(Texture {
-                    texture: render_target,
-                }));
+                let command_allocator: ID3D12CommandAllocator = device
+                    .CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT)
+                    .unwrap();
+
+                let rtv_dsv_allocator = RtvDsvAllocator::new(device.clone());
+                let descriptor_allocator =
+                    DescriptorAllocator::new(device.clone(), DescriptorVisibility::Cpu);
+                let gpu_descriptor_allocator =
+                    DescriptorAllocator::new(device.clone(), DescriptorVisibility::CpuAndGpu);
+
+                frame_contexts.push(Rc::new(Mutex::new(FrameContext {
+                    command_allocator,
+                    rtv_dsv_allocator,
+                    descriptor_allocator,
+                    gpu_descriptor_allocator,
+                    render_target: Some(Texture {
+                        texture: render_target,
+                    }),
+                    used_resources: Vec::new(),
+                    fence_value: 1,
+                })));
             }
 
             let fence: ID3D12Fence = device.CreateFence(0, D3D12_FENCE_FLAG_NONE).unwrap();
-            let fence_value = 1;
             let fence_event = CreateEventW(None, false, false, None).unwrap();
 
             let frame_index = swapchain.GetCurrentBackBufferIndex();
-
-            let command_allocator: ID3D12CommandAllocator = device
-                .CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT)
-                .unwrap();
-
-            let rtv_dsv_allocator = Rc::new(RtvDsvAllocator::new(device.clone()));
-            let descriptor_allocator = Rc::new(Mutex::new(DescriptorAllocator::new(
-                device.clone(),
-                DescriptorVisibility::Cpu,
-            )));
-            let gpu_descriptor_allocator = Rc::new(Mutex::new(DescriptorAllocator::new(
-                device.clone(),
-                DescriptorVisibility::CpuAndGpu,
-            )));
 
             Ok(Self {
                 dxgi_factory,
                 device,
                 swapchain,
                 command_queue,
-                render_targets,
-                command_allocator,
-                rtv_dsv_allocator,
-                descriptor_allocator,
-                gpu_descriptor_allocator,
-                frame_resources: Rc::new(RefCell::new(Vec::new())),
+                frame_contexts,
 
                 fence,
-                fence_value,
                 fence_event,
 
                 frame_index,
@@ -431,32 +450,24 @@ impl Context {
         }
     }
 
-    unsafe fn wait_for_gpu(&mut self) {
-        self.command_queue
-            .Signal(&self.fence, self.fence_value)
-            .unwrap();
-        self.fence
-            .SetEventOnCompletion(self.fence_value, self.fence_event)
-            .unwrap();
-        WaitForSingleObject(self.fence_event, INFINITE);
-        self.fence_value += 1;
+    fn current_frame_context(&self) -> MutexGuard<FrameContext> {
+        self.frame_contexts[self.frame_index as usize]
+            .lock()
+            .unwrap()
     }
 
-    unsafe fn wait_for_previous_frame(&mut self) {
-        let fence = self.fence_value;
+    unsafe fn wait_for_gpu(&mut self) {
+        let mut fc = self.current_frame_context();
 
-        self.command_queue.Signal(&self.fence, fence).ok().unwrap();
+        self.command_queue
+            .Signal(&self.fence, fc.fence_value)
+            .unwrap();
+        self.fence
+            .SetEventOnCompletion(fc.fence_value, self.fence_event)
+            .unwrap();
+        WaitForSingleObject(self.fence_event, INFINITE);
 
-        self.fence_value += 1;
-
-        if self.fence.GetCompletedValue() < fence {
-            self.fence
-                .SetEventOnCompletion(fence, self.fence_event)
-                .ok()
-                .unwrap();
-
-            WaitForSingleObject(self.fence_event, INFINITE);
-        }
+        fc.fence_value += 1;
     }
 
     pub fn create_buffer(&self, allocation: crate::BufferAllocation) -> Buffer {
@@ -579,9 +590,8 @@ impl Context {
 
     pub fn create_bind_group(&self, desc: &crate::BindGroupDesc) -> BindGroup {
         let descriptor_range = unsafe {
-            self.descriptor_allocator
-                .lock()
-                .unwrap()
+            self.current_frame_context()
+                .descriptor_allocator
                 .allocate_range(desc.entries.len())
         };
 
@@ -689,17 +699,15 @@ impl Context {
                 .CreateCommandList(
                     0,
                     D3D12_COMMAND_LIST_TYPE_DIRECT,
-                    &self.command_allocator,
+                    &self.current_frame_context().command_allocator,
                     None,
                 )
                 .unwrap();
 
             let cmd = CommandBuffer {
-                rtv_dsv_allocator: Rc::clone(&self.rtv_dsv_allocator),
+                frame_context: Rc::clone(&self.frame_contexts[self.frame_index as usize]),
                 device: self.device.clone(),
-                gpu_descriptor_allocator: Rc::clone(&self.gpu_descriptor_allocator),
                 command_list,
-                referenced_objects: Rc::clone(&self.frame_resources),
             };
 
             callback(&cmd);
@@ -749,7 +757,13 @@ impl Context {
         unsafe {
             self.wait_for_gpu();
 
-            self.render_targets.drain(..);
+            for i in 0..FRAME_COUNT {
+                let _ = self.frame_contexts[i as usize]
+                    .lock()
+                    .unwrap()
+                    .render_target
+                    .take();
+            }
 
             self.swapchain
                 .ResizeBuffers(0, extent.width, extent.height, DXGI_FORMAT_UNKNOWN, 0)
@@ -758,28 +772,61 @@ impl Context {
             for i in 0..FRAME_COUNT {
                 let texture: ID3D12Resource = self.swapchain.GetBuffer(i).unwrap();
 
-                self.render_targets.push(Rc::new(Texture { texture }));
+                let mut fc = self.frame_contexts[i as usize].lock().unwrap();
+                fc.render_target = Some(Texture { texture });
+                fc.fence_value = 1;
             }
+
+            self.frame_index = self.swapchain.GetCurrentBackBufferIndex();
         }
     }
 
     #[must_use]
     pub fn acquire_next_frame(&mut self) -> SwapchainFrame {
         unsafe {
-            self.command_allocator.Reset().unwrap();
-            self.frame_resources.borrow_mut().clear();
-            self.frame_index = self.swapchain.GetCurrentBackBufferIndex();
+            self.current_frame_context()
+                .command_allocator
+                .Reset()
+                .unwrap();
+            self.current_frame_context().used_resources.clear();
         }
 
         SwapchainFrame {
-            texture: Rc::clone(&self.render_targets[self.frame_index as usize]),
+            texture: Texture {
+                texture: self
+                    .current_frame_context()
+                    .render_target
+                    .as_ref()
+                    .unwrap()
+                    .texture
+                    .clone(),
+            },
         }
     }
 
     pub fn submit_frame(&mut self) {
         unsafe {
             self.swapchain.Present(1, 0).unwrap();
-            self.wait_for_previous_frame();
+
+            let current_fence_value = self.current_frame_context().fence_value;
+            self.command_queue
+                .Signal(&self.fence, current_fence_value)
+                .unwrap();
+
+            self.frame_index = self.swapchain.GetCurrentBackBufferIndex();
+
+            if self.fence.GetCompletedValue() < self.current_frame_context().fence_value {
+                self.fence
+                    .SetEventOnCompletion(
+                        self.current_frame_context().fence_value,
+                        self.fence_event,
+                    )
+                    .unwrap();
+
+                WaitForSingleObject(self.fence_event, INFINITE);
+            }
+
+            self.current_frame_context().fence_value = current_fence_value + FRAME_COUNT as u64;
         }
     }
 
@@ -790,25 +837,22 @@ impl Context {
                 .CreateCommandList(
                     0,
                     D3D12_COMMAND_LIST_TYPE_DIRECT,
-                    &self.command_allocator,
+                    &self.current_frame_context().command_allocator,
                     None,
                 )
                 .unwrap();
 
             command_list.SetDescriptorHeaps(&[Some(
-                self.gpu_descriptor_allocator
-                    .lock()
-                    .unwrap()
+                self.current_frame_context()
+                    .gpu_descriptor_allocator
                     .cbv_srv_uav_heap
                     .clone(),
             )]);
 
             CommandBuffer {
-                rtv_dsv_allocator: Rc::clone(&self.rtv_dsv_allocator),
                 device: self.device.clone(),
-                gpu_descriptor_allocator: Rc::clone(&self.gpu_descriptor_allocator),
                 command_list,
-                referenced_objects: Rc::clone(&self.frame_resources),
+                frame_context: Rc::clone(&self.frame_contexts[self.frame_index as usize]),
             }
         }
     }
