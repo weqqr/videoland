@@ -46,11 +46,11 @@ pub struct EngineState {
 
 struct AppState {
     reg: Registry,
-    schedule: Schedule,
+    schedule: Box<dyn Fn(&Registry) -> Schedule>,
 }
 
 impl AppState {
-    fn new(mut schedule: Schedule, window: Window) -> Self {
+    fn new(schedule: Box<dyn Fn(&Registry) -> Schedule>, window: Window) -> Self {
         let settings = Settings::load_global();
 
         let thread_pool = Arc::new(ThreadPoolBuilder::new().num_threads(4).build().unwrap());
@@ -61,8 +61,12 @@ impl AppState {
 
         let shader_compiler = ShaderCompiler::new();
 
-        let egui_vs = shader_compiler.compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Vertex).unwrap();
-        let egui_fs = shader_compiler.compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Fragment).unwrap();
+        let egui_vs = shader_compiler
+            .compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Vertex)
+            .unwrap();
+        let egui_fs = shader_compiler
+            .compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Fragment)
+            .unwrap();
 
         let renderer = Renderer::new(&window, egui_vs, egui_fs);
         let mut ui = Ui::new(&window);
@@ -87,7 +91,8 @@ impl AppState {
         reg.insert(EngineState::default());
         reg.insert(MainCamera::new());
         reg.insert(SceneGraph::new());
-        schedule.execute(Stage::Init, &mut reg);
+
+        schedule(&reg).execute(Stage::Init, &mut reg);
 
         Self { reg, schedule }
     }
@@ -141,7 +146,7 @@ impl AppState {
             let dt = timings.dtime_s() as f32;
         }
 
-        self.schedule.execute(Stage::EachStep, &mut self.reg);
+        (self.schedule)(&self.reg).execute(Stage::EachStep, &mut self.reg);
 
         self.reg.res_mut::<InputState>().reset_mouse_movement();
 
@@ -166,13 +171,16 @@ pub struct AppInfo {
 }
 
 pub struct App {
-    schedule: Schedule,
+    schedule: Box<dyn Fn(&Registry) -> Schedule>,
     info: AppInfo,
 }
 
 impl App {
-    pub fn new(schedule: Schedule, info: AppInfo) -> Self {
-        Self { schedule, info }
+    pub fn new(schedule: impl Fn(&Registry) -> Schedule + 'static, info: AppInfo) -> Self {
+        Self {
+            schedule: Box::new(schedule),
+            info,
+        }
     }
 
     pub fn run(self) {
@@ -183,6 +191,7 @@ impl App {
         let event_loop = EventLoop::new().unwrap();
         let window = WindowBuilder::new()
             .with_inner_size(PhysicalSize::new(1600, 900))
+            .with_title(&self.info.title)
             .build(&event_loop)
             .unwrap();
 
