@@ -2,7 +2,7 @@ use std::any::Any;
 
 use uuid::Uuid;
 use videoland_ap::AssetId;
-use videoland_sg::{Node, Ty};
+use videoland_core::scene::{Node, Ty};
 
 pub struct Mesh {
     mesh_id: AssetId,

@@ -3,7 +3,7 @@ use egui::{
     RichText, ScrollArea, Sense, Stroke, Style, Vec2,
 };
 use indexmap::IndexMap;
-use videoland_ecs::{Defer, Res, ResMut};
+use videoland_core::{Defer, Res, ResMut};
 use videoland_egui::Ui;
 
 enum Pane {

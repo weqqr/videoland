@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 videoland_ap = { path = "../videoland_ap" }
-videoland_ecs = { path = "../videoland_ecs" }
+videoland_core = { path = "../videoland_core" }
 videoland_rhi = { path = "../videoland_rhi" }
 
 ahash = "0.8.11"

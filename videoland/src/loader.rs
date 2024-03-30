@@ -8,7 +8,7 @@ use videoland_ap::shader::{Shader, ShaderStage};
 use videoland_ap::{AssetId, Vfs};
 
 use crossbeam_channel as channel;
-use videoland_ecs::ResMut;
+use videoland_core::ResMut;
 
 pub struct Loader {
     vfs: Arc<Vfs>,

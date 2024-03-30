@@ -1,5 +1,5 @@
 [package]
-name = "videoland_ecs"
+name = "videoland_core"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 ahash = "0.8.11"
+glam = "0.25.0"
+uuid = { version = "1.7.0", features = ["v4"] }

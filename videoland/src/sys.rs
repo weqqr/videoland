@@ -1,6 +1,6 @@
-pub use videoland_ecs::clear_events;
+pub use videoland_core::clear_events;
 
-use videoland_ecs::{Res, ResMut};
+use videoland_core::{Res, ResMut};
 use videoland_egui::Ui;
 use videoland_render2::egui::PreparedUi;
 use videoland_render2::{Extent2D, Renderer};

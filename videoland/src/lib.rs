@@ -13,9 +13,9 @@ pub mod timing;
 use ap::shader::ShaderStage;
 pub use glam as math;
 pub use videoland_ap as ap;
-pub use videoland_ecs as ecs;
+pub use videoland_core as core;
+pub use videoland_core::scene as scene;
 pub use videoland_render2 as render2;
-pub use videoland_sg as sg;
 pub use winit;
 
 use std::sync::Arc;
@@ -30,13 +30,13 @@ use winit::window::{Window, WindowBuilder};
 
 use crate::ap::Vfs;
 use crate::camera::MainCamera;
-use crate::ecs::{EventQueue, Registry, Schedule, Stage};
+use crate::core::{EventQueue, Registry, Schedule, Stage};
 use crate::input::InputState;
 use crate::loader::{Loader, ShaderCompiler};
 use crate::render2::egui::PreparedUi;
 use crate::render2::{Extent2D, Renderer};
 use crate::settings::Settings;
-use crate::sg::SceneGraph;
+use crate::scene::SceneGraph;
 use crate::timing::Timings;
 
 #[derive(Default)]

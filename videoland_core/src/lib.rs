@@ -4,6 +4,7 @@ pub mod defer;
 pub mod exec;
 pub mod mq;
 pub mod query;
+pub mod scene;
 
 pub use defer::*;
 pub use exec::*;
