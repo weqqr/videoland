@@ -73,13 +73,13 @@ pub struct ShaderModule {
     data: Vec<u8>,
 }
 
-pub struct SwapchainFrame<'a> {
-    texture: &'a Texture,
+pub struct SwapchainFrame {
+    texture: Rc<Texture>,
 }
 
-impl<'a> SwapchainFrame<'a> {
+impl SwapchainFrame {
     pub fn texture(&self) -> &Texture {
-        self.texture
+        &self.texture
     }
 }
 
@@ -258,7 +258,7 @@ pub struct Context {
     device: ID3D12Device5,
     swapchain: IDXGISwapChain3,
     command_queue: ID3D12CommandQueue,
-    render_targets: Vec<Texture>,
+    render_targets: Vec<Rc<Texture>>,
     command_allocator: ID3D12CommandAllocator,
     rtv_dsv_allocator: Rc<RtvDsvAllocator>,
     descriptor_allocator: Rc<Mutex<DescriptorAllocator>>,
@@ -339,9 +339,9 @@ impl Context {
             for i in 0..FRAME_COUNT {
                 let render_target: ID3D12Resource = swapchain.GetBuffer(i).unwrap();
 
-                render_targets.push(Texture {
+                render_targets.push(Rc::new(Texture {
                     texture: render_target,
-                });
+                }));
             }
 
             let fence: ID3D12Fence = device.CreateFence(0, D3D12_FENCE_FLAG_NONE).unwrap();
@@ -384,6 +384,13 @@ impl Context {
         }
     }
 
+    unsafe fn wait_for_gpu(&mut self) {
+        self.command_queue.Signal(&self.fence, self.fence_value).unwrap();
+        self.fence.SetEventOnCompletion(self.fence_value, self.fence_event).unwrap();
+        WaitForSingleObject(self.fence_event, INFINITE);
+        self.fence_value += 1;
+    }
+
     unsafe fn wait_for_previous_frame(&mut self) {
         let fence = self.fence_value;
 
@@ -399,8 +406,6 @@ impl Context {
 
             WaitForSingleObject(self.fence_event, INFINITE);
         }
-
-        self.frame_index = self.swapchain.GetCurrentBackBufferIndex();
     }
 
     pub fn create_buffer(&self, allocation: crate::BufferAllocation) -> Buffer {
@@ -667,7 +672,7 @@ impl Context {
 
     pub fn resize_swapchain(&mut self, extent: crate::Extent2D) {
         unsafe {
-            self.wait_for_previous_frame();
+            self.wait_for_gpu();
 
             self.render_targets.drain(..);
 
@@ -678,19 +683,20 @@ impl Context {
             for i in 0..FRAME_COUNT {
                 let texture: ID3D12Resource = self.swapchain.GetBuffer(i).unwrap();
 
-                self.render_targets.push(Texture { texture });
+                self.render_targets.push(Rc::new(Texture { texture }));
             }
         }
     }
 
     #[must_use]
-    pub fn acquire_next_frame(&self) -> SwapchainFrame {
+    pub fn acquire_next_frame(&mut self) -> SwapchainFrame {
         unsafe {
             self.command_allocator.Reset().unwrap();
+            self.frame_index = self.swapchain.GetCurrentBackBufferIndex();
         }
 
         SwapchainFrame {
-            texture: &self.render_targets[self.frame_index as usize],
+            texture: Rc::clone(&self.render_targets[self.frame_index as usize]),
         }
     }
 
