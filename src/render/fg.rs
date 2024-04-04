@@ -1,6 +1,6 @@
+use crate::rhi;
 use ahash::AHashMap;
 use uuid::Uuid;
-use videoland_rhi as rhi;
 
 pub struct ResourceContainer {
     textures: AHashMap<Uuid, rhi::Texture>,

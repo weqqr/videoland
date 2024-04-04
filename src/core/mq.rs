@@ -1,6 +1,6 @@
 use std::cell::{Ref, RefMut};
 
-use crate::{Registry, ResMut, SystemParam};
+use crate::core::{Registry, ResMut, SystemParam};
 
 pub struct EventQueue<E> {
     events: Vec<E>,

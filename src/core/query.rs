@@ -5,8 +5,8 @@ use std::ops::{Deref, DerefMut};
 
 use ahash::{AHashMap, AHashSet};
 
-use crate::exec::SystemParam;
-use crate::{expand_macro_staircase, Registry};
+use crate::core::SystemParam;
+use crate::core::{expand_macro_staircase, Registry};
 
 pub struct Res<'a, T: 'static> {
     value: Ref<'a, T>,

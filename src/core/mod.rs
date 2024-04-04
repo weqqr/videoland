@@ -4,7 +4,6 @@ pub mod defer;
 pub mod exec;
 pub mod mq;
 pub mod query;
-pub mod scene;
 
 pub use defer::*;
 pub use exec::*;
@@ -124,7 +123,6 @@ impl<A: 'static, B: 'static> Bundle for (A, B) {
     }
 }
 
-#[macro_export]
 macro_rules! expand_macro_staircase {
     ($m:ident) => {
         $m!();
@@ -137,3 +135,5 @@ macro_rules! expand_macro_staircase {
         expand_macro_staircase!($m $($tys),*);
     };
 }
+
+pub(crate) use expand_macro_staircase;

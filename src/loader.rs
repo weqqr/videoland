@@ -1,14 +1,14 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crate::asset::model::Model;
+use crate::asset::shader::{Shader, ShaderStage};
+use crate::asset::{AssetId, Vfs};
+use crate::core::ResMut;
 use hassle_rs::{Dxc, DxcCompiler, DxcIncludeHandler, DxcLibrary, HassleError};
 use rayon::ThreadPool;
-use videoland_ap::model::Model;
-use videoland_ap::shader::{Shader, ShaderStage};
-use videoland_ap::{AssetId, Vfs};
 
 use crossbeam_channel as channel;
-use videoland_core::ResMut;
 
 pub struct Loader {
     vfs: Arc<Vfs>,
@@ -72,7 +72,6 @@ pub fn poll(loader: ResMut<Loader>) {
     }
 }
 
-
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
 pub enum Error {
@@ -129,7 +128,6 @@ fn shader_entry_point(stage: ShaderStage) -> &'static str {
         ShaderStage::Compute => "cs_main",
     }
 }
-
 
 impl ShaderCompiler {
     pub fn new() -> Self {

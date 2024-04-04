@@ -11,9 +11,10 @@ use windows::Win32::Graphics::Dxgi::Common::*;
 use windows::Win32::Graphics::{Direct3D::*, Direct3D12::*, Dxgi::*};
 use windows::Win32::System::Threading::*;
 
-use crate::{
-    BindGroupLayoutDesc, BindingResource, BufferLocation, Extent2D, Scissor, TextureFormat,
-    TextureLayout, VertexFormat, Viewport,
+use crate::rhi::{
+    BindGroupDesc, BindGroupLayoutDesc, BindingResource, BindingType, BufferAllocation,
+    BufferLocation, Extent2D, PipelineDesc, Scissor, TextureDesc, TextureFormat, TextureLayout,
+    VertexFormat, Viewport,
 };
 
 const DEBUG_ENABLED: bool = true;
@@ -41,6 +42,10 @@ pub struct Buffer {
 impl Buffer {
     pub fn len(&self) -> u64 {
         self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
     }
 
     pub fn write_data(&self, offset: u64, data: &[u8]) {
@@ -473,7 +478,7 @@ impl Context {
         fc.fence_value += 1;
     }
 
-    pub fn create_buffer(&self, allocation: crate::BufferAllocation) -> Buffer {
+    pub fn create_buffer(&self, allocation: BufferAllocation) -> Buffer {
         unsafe {
             let mut buffer: Option<ID3D12Resource> = None;
             self.device
@@ -519,7 +524,7 @@ impl Context {
 
             for entry in desc.entries {
                 let range_type = match entry.ty {
-                    crate::BindingType::Uniform => D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+                    BindingType::Uniform => D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
                 };
 
                 ranges.push(D3D12_DESCRIPTOR_RANGE1 {
@@ -591,7 +596,7 @@ impl Context {
         }
     }
 
-    pub fn create_bind_group(&self, desc: &crate::BindGroupDesc) -> BindGroup {
+    pub fn create_bind_group(&self, desc: &BindGroupDesc) -> BindGroup {
         let descriptor_range = unsafe {
             self.current_frame_context()
                 .descriptor_allocator
@@ -622,7 +627,7 @@ impl Context {
                                 MipLevels: 1,
                                 PlaneSlice: 0,
                                 ResourceMinLODClamp: 0.0,
-                            }
+                            },
                         },
                     };
 
@@ -641,7 +646,7 @@ impl Context {
         }
     }
 
-    pub fn create_pipeline(&self, desc: &crate::PipelineDesc) -> Pipeline {
+    pub fn create_pipeline(&self, desc: &PipelineDesc) -> Pipeline {
         unsafe {
             let mut semantics = Vec::new();
             let mut input_element_descs = Vec::new();
@@ -742,7 +747,7 @@ impl Context {
         }
     }
 
-    pub fn create_texture(&self, desc: &crate::TextureDesc) -> Texture {
+    pub fn create_texture(&self, desc: &TextureDesc) -> Texture {
         unsafe {
             let mut texture: Option<ID3D12Resource> = None;
             self.device

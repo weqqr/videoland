@@ -17,8 +17,4 @@ impl Shader {
     pub fn data(&self) -> &[u8] {
         &self.data
     }
-
-    pub fn spirv(&self) -> &[u32] {
-        bytemuck::cast_slice(&self.data)
-    }
 }

@@ -1,8 +1,8 @@
 use std::any::Any;
 
-use uuid::Uuid;
-use videoland_ap::AssetId;
-use videoland_core::scene::{Node, Ty};
+use crate::asset::AssetId;
+use crate::scene::{Node, Ty};
+use uuid::{uuid, Uuid};
 
 pub struct Mesh {
     mesh_id: AssetId,
@@ -16,10 +16,7 @@ impl Mesh {
 
 impl Ty for Mesh {
     fn ty() -> Uuid {
-        Uuid::from_bytes([
-            0xD9, 0x10, 0x41, 0xBA, 0x99, 0xEF, 0x46, 0x72, 0x82, 0x69, 0xCB, 0x7D, 0x19, 0xA7,
-            0x90, 0xDD,
-        ])
+        uuid!("a91804d7-6727-4e66-805e-a977074a799a")
     }
 }
 

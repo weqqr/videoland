@@ -2,13 +2,13 @@ use ahash::AHashMap;
 use glam::{Mat4, Vec2};
 use tracing::info;
 use uuid::Uuid;
-use videoland_ap::model::{Mesh, Model};
-use videoland_ap::shader::Shader;
-use videoland_rhi as rhi;
+use crate::asset::model::{Mesh, Model};
+use crate::asset::shader::Shader;
+use crate::rhi;
 use winit::window::Window;
 
-use crate::egui::{EguiRenderer, PreparedUi};
-use crate::fg::ResourceContainer;
+use crate::render::egui::{EguiRenderer, PreparedUi};
+use crate::render::fg::ResourceContainer;
 
 pub mod egui;
 pub mod fg;
@@ -176,7 +176,7 @@ impl Renderer {
 
         let mesh_data_size = std::mem::size_of_val(mesh.data()) as u64;
 
-        let mut staging = self.context.create_buffer(rhi::BufferAllocation {
+        let staging = self.context.create_buffer(rhi::BufferAllocation {
             usage: rhi::BufferUsage::VERTEX | rhi::BufferUsage::TRANSFER_SRC,
             location: rhi::BufferLocation::Cpu,
             size: mesh_data_size,
@@ -204,7 +204,7 @@ impl Renderer {
     }
 
     pub fn resize(&mut self, size: Extent2D) {
-        self.context.resize_swapchain(size.into());
+        self.context.resize_swapchain(size);
     }
 
     pub fn render(

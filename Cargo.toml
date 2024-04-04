@@ -1,3 +1,42 @@
-[workspace]
-members = ["videoland*"]
-resolver = "2"
+[package]
+name = "videoland"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ahash = "0.8.11"
+bitflags = "2.4.1"
+bytemuck = { version = "1.14.3", features = ["derive"] }
+crossbeam-channel = "0.5.12"
+egui = { version = "0.27.0", features = ["bytemuck"] }
+egui-winit = { version = "0.27.0", default-features = false, features = ["clipboard"] }
+glam = { version = "0.25.0", features = ["bytemuck"] }
+hassle-rs = "0.10.0"
+obj = "0.10.2"
+physx-sys = "0.11.5"
+raw-window-handle = "0.6.0"
+rayon = "1.8.0"
+serde = { version = "1.0.189", features = ["derive"] }
+serde_json = "1.0.107"
+thiserror = "1.0.57"
+tracing = "0.1.40"
+tracing-subscriber = "0.3.17"
+uuid = { version = "1.7.0", features = ["v4"] }
+winit = "0.29.14"
+
+[dependencies.windows]
+version = "0.54.0"
+optional = true
+features = [
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Dxgi_Common", # Swapchain
+    "Win32_Security", # Events
+    "Win32_System_Threading", # Events and waiting
+]
+
+[features]
+default = ["d3d12"]
+d3d12 = ["windows"]

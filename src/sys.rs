@@ -1,9 +1,9 @@
-pub use videoland_core::clear_events;
+pub use crate::core::clear_events;
 
-use videoland_core::{Res, ResMut};
-use videoland_egui::Ui;
-use videoland_render2::egui::PreparedUi;
-use videoland_render2::{Extent2D, Renderer};
+use crate::core::{Res, ResMut};
+use crate::render::egui::PreparedUi;
+use crate::render::{Extent2D, Renderer};
+use crate::ui::Ui;
 use winit::window::Window;
 
 use crate::camera::MainCamera;
@@ -26,5 +26,9 @@ pub fn render(
         height: window_size.height,
     };
 
-    renderer.render(camera.camera.view_projection(extent.aspect_ratio()), &prepared_ui, extent);
+    renderer.render(
+        camera.camera.view_projection(extent.aspect_ratio()),
+        &prepared_ui,
+        extent,
+    );
 }

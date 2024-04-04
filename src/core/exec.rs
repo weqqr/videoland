@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use ahash::AHashMap;
 
-use crate::{expand_macro_staircase, Registry, Step};
+use crate::core::{expand_macro_staircase, Registry, Step};
 
 pub struct SystemFn<F, FnParams> {
     func: F,

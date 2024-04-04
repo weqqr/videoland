@@ -1,43 +1,45 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(clippy::new_without_default)]
 
+pub mod asset;
 pub mod camera;
+pub mod core;
 pub mod domain;
 pub mod input;
 pub mod loader;
 pub mod nodes;
+pub mod render;
+pub mod rhi;
+pub mod ui;
+pub mod scene;
 pub mod settings;
 pub mod sys;
 pub mod timing;
 
-use ap::shader::ShaderStage;
 pub use glam as math;
-pub use videoland_ap as ap;
-pub use videoland_core as core;
-pub use videoland_core::scene as scene;
-pub use videoland_render2 as render2;
-pub use videoland_egui as ui;
 pub use winit;
 
 use std::sync::Arc;
 
 use rayon::ThreadPoolBuilder;
-use videoland_egui::Ui;
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window, WindowBuilder};
 
-use crate::ap::Vfs;
+use crate::asset::shader::ShaderStage;
+use crate::asset::Vfs;
 use crate::camera::MainCamera;
 use crate::core::{EventQueue, Registry, Schedule, Stage};
 use crate::input::InputState;
 use crate::loader::{Loader, ShaderCompiler};
-use crate::render2::egui::PreparedUi;
-use crate::render2::{Extent2D, Renderer};
-use crate::settings::Settings;
+use crate::render::egui::PreparedUi;
+use crate::render::{Extent2D, Renderer};
 use crate::scene::SceneGraph;
+use crate::settings::Settings;
 use crate::timing::Timings;
+use crate::ui::Ui;
 
 #[derive(Default)]
 pub struct EngineState {

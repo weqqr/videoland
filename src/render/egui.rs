@@ -1,9 +1,9 @@
+use crate::asset::shader::Shader;
+use crate::rhi;
 use ahash::AHashMap;
 use egui::epaint::Primitive;
 use egui::{ClippedPrimitive, ImageData, TextureId, TexturesDelta};
 use glam::Vec2;
-use videoland_ap::shader::Shader;
-use videoland_rhi as rhi;
 
 #[derive(Default)]
 pub struct PreparedUi {

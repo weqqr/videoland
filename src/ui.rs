@@ -1,9 +1,9 @@
+use crate::render::egui::PreparedUi;
 use egui::epaint::Shadow;
 use egui::{
-    Align2, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Margin,
-    RichText, Rounding, Stroke, Vec2,
+    Align2, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Margin, RichText,
+    Rounding, Stroke, Vec2,
 };
-use videoland_render2::egui::PreparedUi;
 use winit::event::WindowEvent;
 use winit::window::Window;
 

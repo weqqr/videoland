@@ -33,6 +33,7 @@ impl InputState {
     }
 
     pub fn submit_device_input(&mut self, event: &DeviceEvent) {
+        #[allow(clippy::single_match)]
         match event {
             DeviceEvent::MouseMotion { delta } => {
                 self.mouse_delta_since_last_frame += vec2(delta.0 as f32, delta.1 as f32);
