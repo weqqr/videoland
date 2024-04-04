@@ -1,4 +1,9 @@
+use std::any::Any;
+
 use glam::{vec3, Mat4, Quat, Vec3};
+use uuid::{uuid, Uuid};
+
+use crate::scene::{Node, Ty};
 
 #[derive(Clone)]
 pub struct Camera {
@@ -56,5 +61,29 @@ impl Camera {
         let world_translation = Mat4::from_translation(-self.position);
 
         projection * world_rotation * world_translation
+    }
+}
+
+impl Ty for Camera {
+    fn ty() -> Uuid {
+        uuid!("04e78c91-f252-4d09-bcb9-a1f182d14cfa")
+    }
+}
+
+impl Node for Camera {
+    fn as_any(&self) -> &dyn Any {
+        todo!()
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        todo!()
+    }
+
+    fn name(&self) -> &str {
+        todo!()
+    }
+
+    fn ty(&self) -> Uuid {
+        <Self as Ty>::ty()
     }
 }

@@ -6,7 +6,6 @@ pub mod asset;
 pub mod core;
 pub mod input;
 pub mod loader;
-pub mod nodes;
 pub mod render;
 pub mod rhi;
 pub mod ui;
