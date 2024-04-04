@@ -1,8 +1,11 @@
 use std::any::Any;
 use std::ops::{Deref, DerefMut};
 
-use glam::{Quat, Vec3};
 use uuid::Uuid;
+
+mod transform;
+
+pub use self::transform::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NodeId {
@@ -211,12 +214,6 @@ impl<'a, N: Node> DerefMut for NodeRefMut<'a, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.node.as_mut().unwrap()
     }
-}
-
-#[derive(Default)]
-pub struct Transform {
-    pub position: Vec3,
-    pub rotation: Quat,
 }
 
 #[cfg(test)]

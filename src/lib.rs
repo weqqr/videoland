@@ -5,7 +5,6 @@
 pub mod asset;
 pub mod camera;
 pub mod core;
-pub mod domain;
 pub mod input;
 pub mod loader;
 pub mod nodes;

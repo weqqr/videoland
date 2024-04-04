@@ -1,21 +1,8 @@
 use std::ops::Mul;
 
 use glam::{Mat4, Quat, Vec3};
-use uuid::Uuid;
 
-#[derive(Clone)]
-pub struct Name(pub String);
-
-#[derive(Clone, Copy)]
-pub struct ModelId(pub Uuid);
-
-#[derive(Clone, Copy)]
-pub struct MeshId(pub Uuid);
-
-#[derive(Clone, Copy)]
-pub struct RenderableMesh(pub Uuid);
-
-#[derive(Clone, Copy)]
+#[derive(Default, Clone, Copy)]
 pub struct Transform {
     pub position: Vec3,
     pub rotation: Quat,
@@ -36,12 +23,4 @@ impl Mul for Transform {
             rotation: self.rotation * rhs.rotation,
         }
     }
-}
-
-#[derive(Clone, Copy)]
-pub struct Player;
-
-#[derive(Clone, Copy)]
-pub struct RigidBody {
-    pub scene: Uuid,
 }
