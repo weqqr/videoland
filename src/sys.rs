@@ -6,8 +6,6 @@ use crate::render::{Extent2D, Renderer};
 use crate::ui::Ui;
 use winit::window::Window;
 
-use crate::camera::MainCamera;
-
 pub fn prepare_ui(window: Res<Window>, mut ui: ResMut<Ui>, mut prepared_ui: ResMut<PreparedUi>) {
     *prepared_ui = ui.finish_frame(&window);
     ui.begin_frame(&window);
@@ -15,7 +13,6 @@ pub fn prepare_ui(window: Res<Window>, mut ui: ResMut<Ui>, mut prepared_ui: ResM
 
 pub fn render(
     window: Res<Window>,
-    camera: Res<MainCamera>,
     prepared_ui: Res<PreparedUi>,
     mut renderer: ResMut<Renderer>,
 ) {
@@ -27,7 +24,8 @@ pub fn render(
     };
 
     renderer.render(
-        camera.camera.view_projection(extent.aspect_ratio()),
+        /*g.current_scene().primary_camera().view_projection(extent.aspect_ratio()),*/
+        Default::default(),
         &prepared_ui,
         extent,
     );

@@ -3,8 +3,10 @@ use std::ops::{Deref, DerefMut};
 
 use uuid::Uuid;
 
+mod camera;
 mod transform;
 
+pub use self::camera::*;
 pub use self::transform::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -3,7 +3,6 @@
 #![allow(clippy::new_without_default)]
 
 pub mod asset;
-pub mod camera;
 pub mod core;
 pub mod input;
 pub mod loader;
@@ -29,7 +28,6 @@ use winit::window::{Window, WindowBuilder};
 
 use crate::asset::shader::ShaderStage;
 use crate::asset::Vfs;
-use crate::camera::MainCamera;
 use crate::core::{EventQueue, Registry, Schedule, Stage};
 use crate::input::InputState;
 use crate::loader::{Loader, ShaderCompiler};
@@ -90,7 +88,6 @@ impl AppState {
         reg.insert(renderer);
         reg.insert(PreparedUi::default());
         reg.insert(EngineState::default());
-        reg.insert(MainCamera::new());
         reg.insert(SceneGraph::new());
 
         schedule(&reg).execute(Stage::Init, &mut reg);

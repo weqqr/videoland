@@ -1,17 +1,5 @@
 use glam::{vec3, Mat4, Quat, Vec3};
 
-pub struct MainCamera {
-    pub camera: Camera,
-}
-
-impl MainCamera {
-    pub fn new() -> Self {
-        Self {
-            camera: Camera::new(),
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct Camera {
     pub position: Vec3,
@@ -68,47 +56,5 @@ impl Camera {
         let world_translation = Mat4::from_translation(-self.position);
 
         projection * world_rotation * world_translation
-    }
-}
-
-pub struct ArcballCameraController {
-    pub pivot: Vec3,
-    pub pitch: f32,
-    pub yaw: f32,
-    pub step: f32,
-}
-
-impl ArcballCameraController {
-    pub fn new() -> Self {
-        Self {
-            pivot: Vec3::ZERO,
-            pitch: 0.0,
-            yaw: 0.0,
-            step: 20.0,
-        }
-    }
-
-    pub fn camera(&self) -> Camera {
-        let rotation_x = Quat::from_rotation_x(self.pitch.to_radians());
-        let rotation_y = Quat::from_rotation_y(-self.yaw.to_radians());
-
-        let distance = 1.3f32.powf(self.step);
-        let position = (rotation_y * rotation_x).mul_vec3(Vec3::NEG_Z * distance) + self.pivot;
-
-        Camera {
-            position,
-            pitch: -self.pitch,
-            yaw: self.yaw + 180.0,
-            fov: 90.0f32,
-        }
-    }
-
-    pub fn rotate_by(&mut self, delta_pitch: f32, delta_yaw: f32) {
-        self.pitch += delta_pitch;
-        self.yaw += delta_yaw;
-    }
-
-    pub fn move_by(&mut self, delta_step: f32) {
-        self.step += delta_step;
     }
 }
