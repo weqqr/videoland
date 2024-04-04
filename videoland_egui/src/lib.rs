@@ -3,7 +3,6 @@ use egui::{
     Align2, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Margin,
     RichText, Rounding, Stroke, Vec2,
 };
-use indexmap::IndexMap;
 use videoland_render2::egui::PreparedUi;
 use winit::event::WindowEvent;
 use winit::window::Window;
@@ -85,7 +84,7 @@ impl Ui {
         self.ctx.begin_frame(input);
     }
 
-    pub fn status_bar(&self, data: IndexMap<String, String>) {
+    pub fn status_bar(&self, data: &[(&str, &str)]) {
         egui::Window::new("--videoland-status-bar")
             .anchor(Align2::LEFT_BOTTOM, Vec2::ZERO)
             .title_bar(false)
@@ -101,7 +100,7 @@ impl Ui {
                 stroke: Stroke::new(1.0, Color32::GRAY),
             })
             .show(&self.ctx, |ui| {
-                status_data(ui, &data);
+                status_data(ui, data);
             });
     }
 
@@ -126,7 +125,7 @@ impl Ui {
     }
 }
 
-pub fn status_data(ui: &mut egui::Ui, data: &IndexMap<String, String>) {
+pub fn status_data(ui: &mut egui::Ui, data: &[(&str, &str)]) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = Vec2::ZERO;
         let label = |ui: &mut egui::Ui, text, color| {
@@ -134,9 +133,9 @@ pub fn status_data(ui: &mut egui::Ui, data: &IndexMap<String, String>) {
         };
 
         for (index, (key, value)) in data.iter().enumerate() {
-            label(ui, key, Color32::WHITE);
+            label(ui, *key, Color32::WHITE);
             ui.add_space(2.0);
-            label(ui, value, Color32::YELLOW);
+            label(ui, *value, Color32::YELLOW);
 
             if index < data.len() - 1 {
                 ui.add_space(12.0);

@@ -1,5 +1,6 @@
+use ahash::AHashMap;
 use egui::epaint::Primitive;
-use egui::{ClippedPrimitive, ImageData, TexturesDelta};
+use egui::{ClippedPrimitive, ImageData, TextureId, TexturesDelta};
 use glam::Vec2;
 use videoland_ap::shader::Shader;
 use videoland_rhi as rhi;
@@ -17,6 +18,8 @@ pub struct EguiRenderer {
 
     bind_group_layout: rhi::BindGroupLayout,
     pipeline: rhi::Pipeline,
+
+    textures: AHashMap<TextureId, rhi::Texture>,
 }
 
 #[derive(Default, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -99,6 +102,7 @@ impl EguiRenderer {
 
             bind_group_layout,
             pipeline,
+            textures: AHashMap::new(),
         }
     }
 
@@ -197,6 +201,8 @@ impl EguiRenderer {
             texture_upload_buffer.write_data(0, data);
 
             cmd.copy_buffer_to_texture(&texture_upload_buffer, &texture);
+
+            self.textures.insert(*id, texture);
         }
 
         let bind_group = context.create_bind_group(&rhi::BindGroupDesc {

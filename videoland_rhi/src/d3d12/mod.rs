@@ -63,8 +63,10 @@ impl Buffer {
     }
 }
 
+#[derive(Clone)]
 pub struct Texture {
     texture: ID3D12Resource,
+    format: DXGI_FORMAT,
 }
 
 pub struct TextureView {}
@@ -424,6 +426,7 @@ impl Context {
                     gpu_descriptor_allocator,
                     render_target: Some(Texture {
                         texture: render_target,
+                        format: DXGI_FORMAT_R8G8B8A8_UNORM,
                     }),
                     used_resources: Vec::new(),
                     fence_value: 1,
@@ -608,6 +611,27 @@ impl Context {
                         descriptor_range.cpu_descriptor(i),
                     );
                 },
+                BindingResource::Texture(texture) => unsafe {
+                    let srv_desc = D3D12_SHADER_RESOURCE_VIEW_DESC {
+                        Format: texture.format,
+                        ViewDimension: D3D12_SRV_DIMENSION_TEXTURE2D,
+                        Shader4ComponentMapping: D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+                        Anonymous: D3D12_SHADER_RESOURCE_VIEW_DESC_0 {
+                            Texture2D: D3D12_TEX2D_SRV {
+                                MostDetailedMip: 0,
+                                MipLevels: 1,
+                                PlaneSlice: 0,
+                                ResourceMinLODClamp: 0.0,
+                            }
+                        },
+                    };
+
+                    self.device.CreateShaderResourceView(
+                        &texture.texture,
+                        Some(&srv_desc),
+                        descriptor_range.cpu_descriptor(i),
+                    );
+                },
             }
         }
 
@@ -749,6 +773,7 @@ impl Context {
 
             Texture {
                 texture: texture.unwrap(),
+                format: desc.format.into(),
             }
         }
     }
@@ -773,7 +798,10 @@ impl Context {
                 let texture: ID3D12Resource = self.swapchain.GetBuffer(i).unwrap();
 
                 let mut fc = self.frame_contexts[i as usize].lock().unwrap();
-                fc.render_target = Some(Texture { texture });
+                fc.render_target = Some(Texture {
+                    texture,
+                    format: DXGI_FORMAT_R8G8B8A8_UNORM,
+                });
                 fc.fence_value = 1;
             }
 
@@ -792,15 +820,7 @@ impl Context {
         }
 
         SwapchainFrame {
-            texture: Texture {
-                texture: self
-                    .current_frame_context()
-                    .render_target
-                    .as_ref()
-                    .unwrap()
-                    .texture
-                    .clone(),
-            },
+            texture: self.current_frame_context().render_target.clone().unwrap(),
         }
     }
 

@@ -18,7 +18,7 @@ PsInput vs_main(
     float2 texcoord : TEXCOORD,
     uint color : COLOR
 ) {
-    float2 normalized_position = (2 * float2(1, -1) * position) / uniforms.viewport_size + float2(-1, 1);
+    float2 normalized_position = (2 * float2(1, -1) * position - float2(0.5, 0.5)) / uniforms.viewport_size + float2(-1, 1);
 
     PsInput result;
     result.position = float4(normalized_position, 0.0, 1.0);

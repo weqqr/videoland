@@ -127,6 +127,7 @@ pub enum BindingType {
 
 pub enum BindingResource<'a> {
     Buffer(&'a Buffer),
+    Texture(&'a Texture),
 }
 
 pub struct BindGroupDesc<'a> {

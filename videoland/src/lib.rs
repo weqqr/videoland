@@ -16,11 +16,11 @@ pub use videoland_ap as ap;
 pub use videoland_core as core;
 pub use videoland_core::scene as scene;
 pub use videoland_render2 as render2;
+pub use videoland_egui as ui;
 pub use winit;
 
 use std::sync::Arc;
 
-use indexmap::IndexMap;
 use rayon::ThreadPoolBuilder;
 use videoland_egui::Ui;
 use winit::dpi::PhysicalSize;
@@ -124,19 +124,6 @@ impl AppState {
         self.reg.res_mut::<InputState>().submit_device_input(&event);
 
         EventLoopIterationDecision::Continue
-    }
-
-    fn prepare_stats(&self) -> IndexMap<String, String> {
-        let timings = self.reg.res::<Timings>();
-
-        let mut stats = IndexMap::new();
-        stats.insert(
-            "Frame rate".to_owned(),
-            format!("{:>3}fps", timings.fps().round()),
-        );
-        stats.insert("ΔTime".to_owned(), format!("{:.2}ms", timings.dtime_ms()));
-
-        stats
     }
 
     fn update(&mut self) -> EventLoopIterationDecision {
