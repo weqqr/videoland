@@ -67,21 +67,7 @@ impl Camera {
         // world should be shifted away from the camera
         let world_translation = Mat4::from_translation(-self.position);
 
-        // Vertical axis needs to be inverted when using Vulkan. Engine assumes
-        // positive Y to go up, and Vulkan does the opposite.
-        //
-        // +---------------------+
-        // |  Engine  |  Vulkan  |
-        // +----------+----------+
-        // | Y ^      |        X |
-        // |   |      |   0----> |
-        // |   0----> |   |      |
-        // |        X | Y v      |
-        // +----------+----------+
-        //
-        let flip = Mat4::from_scale(vec3(1.0, -1.0, 1.0));
-
-        flip * projection * world_rotation * world_translation
+        projection * world_rotation * world_translation
     }
 }
 
