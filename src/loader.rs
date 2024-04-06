@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::asset::model::Model;
-use crate::asset::shader::{Shader, ShaderStage};
 use crate::asset::{AssetId, Vfs};
+use crate::asset::{Model, Shader, ShaderStage};
 use crate::core::ResMut;
 use hassle_rs::{Dxc, DxcCompiler, DxcIncludeHandler, DxcLibrary, HassleError};
 use rayon::ThreadPool;

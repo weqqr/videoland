@@ -8,11 +8,11 @@ pub mod input;
 pub mod loader;
 pub mod render;
 pub mod rhi;
-pub mod ui;
 pub mod scene;
 pub mod settings;
 pub mod sys;
 pub mod timing;
+pub mod ui;
 
 pub use glam as math;
 pub use winit;
@@ -25,8 +25,7 @@ use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window, WindowBuilder};
 
-use crate::asset::shader::ShaderStage;
-use crate::asset::Vfs;
+use crate::asset::{ShaderStage, Vfs};
 use crate::core::{EventQueue, Registry, Schedule, Stage};
 use crate::input::InputState;
 use crate::loader::{Loader, ShaderCompiler};

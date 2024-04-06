@@ -1,7 +1,7 @@
 use std::any::Any;
 
 use crate::asset::AssetId;
-use crate::scene::{Node, Ty};
+use crate::scene::{Node, NodeType};
 use uuid::{uuid, Uuid};
 
 pub struct Mesh {
@@ -14,8 +14,8 @@ impl Mesh {
     }
 }
 
-impl Ty for Mesh {
-    fn ty() -> Uuid {
+impl NodeType for Mesh {
+    fn node_type() -> Uuid {
         uuid!("a91804d7-6727-4e66-805e-a977074a799a")
     }
 }
@@ -34,6 +34,6 @@ impl Node for Mesh {
     }
 
     fn ty(&self) -> Uuid {
-        <Self as Ty>::ty()
+        <Self as NodeType>::node_type()
     }
 }

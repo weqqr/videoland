@@ -4,8 +4,13 @@ use std::sync::RwLock;
 use ahash::AHashMap;
 use uuid::Uuid;
 
-pub mod model;
-pub mod shader;
+mod model;
+mod scene;
+mod shader;
+
+pub use self::model::*;
+pub use self::scene::*;
+pub use self::shader::*;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct AssetId(Uuid);

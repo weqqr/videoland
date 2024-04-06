@@ -1,4 +1,4 @@
-use crate::asset::shader::Shader;
+use crate::asset::Shader;
 use crate::rhi;
 use ahash::AHashMap;
 use egui::epaint::Primitive;

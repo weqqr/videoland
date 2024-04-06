@@ -3,27 +3,7 @@ use std::io::Cursor;
 use glam::{Vec2, Vec3};
 use uuid::Uuid;
 
-#[derive(Clone, Copy)]
-pub enum VertexFormat {
-    Float32x1,
-    Float32x2,
-    Float32x3,
-    Float32x4,
-}
-
-#[derive(Clone)]
-pub struct VertexAttribute {
-    pub binding: u32,
-    pub location: u32,
-    pub offset: u32,
-    pub format: VertexFormat,
-}
-
-#[derive(Clone)]
-pub struct VertexLayout<'a> {
-    pub attributes: &'a [VertexAttribute],
-    pub stride: u32,
-}
+use crate::rhi;
 
 pub struct Vertex {
     pub position: Vec3,
@@ -38,30 +18,30 @@ impl Vertex {
         data.extend_from_slice(&self.texcoord.to_array());
     }
 
-    pub fn layout() -> VertexLayout<'static> {
-        VertexLayout {
+    pub fn layout() -> rhi::VertexBufferLayout<'static> {
+        rhi::VertexBufferLayout {
             stride: 8 * 4,
             attributes: &[
-                // position
-                VertexAttribute {
+                rhi::VertexAttribute {
                     binding: 0,
-                    format: VertexFormat::Float32x3,
+                    format: rhi::VertexFormat::Float32x3,
                     offset: 0,
                     location: 0,
+                    semantic: "POSITION",
                 },
-                // normal
-                VertexAttribute {
+                rhi::VertexAttribute {
                     binding: 0,
-                    format: VertexFormat::Float32x3,
+                    format: rhi::VertexFormat::Float32x3,
                     offset: 3 * 4,
                     location: 1,
+                    semantic: "NORMAL",
                 },
-                // texcoord
-                VertexAttribute {
+                rhi::VertexAttribute {
                     binding: 0,
-                    format: VertexFormat::Float32x2,
+                    format: rhi::VertexFormat::Float32x2,
                     offset: 6 * 4,
                     location: 2,
+                    semantic: "TEXCOORD",
                 },
             ],
         }

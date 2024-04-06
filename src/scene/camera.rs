@@ -3,7 +3,7 @@ use std::any::Any;
 use glam::{vec3, Mat4, Quat, Vec3};
 use uuid::{uuid, Uuid};
 
-use crate::scene::{Node, Ty};
+use crate::scene::{Node, NodeType};
 
 #[derive(Clone)]
 pub struct Camera {
@@ -64,8 +64,8 @@ impl Camera {
     }
 }
 
-impl Ty for Camera {
-    fn ty() -> Uuid {
+impl NodeType for Camera {
+    fn node_type() -> Uuid {
         uuid!("04e78c91-f252-4d09-bcb9-a1f182d14cfa")
     }
 }
@@ -84,6 +84,6 @@ impl Node for Camera {
     }
 
     fn ty(&self) -> Uuid {
-        <Self as Ty>::ty()
+        <Self as NodeType>::node_type()
     }
 }

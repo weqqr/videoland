@@ -1,36 +1,14 @@
-use std::any::Any;
 use std::ops::{Deref, DerefMut};
-
-use uuid::Uuid;
 
 mod camera;
 mod mesh;
+mod node;
 mod transform;
 
 pub use self::camera::*;
 pub use self::mesh::*;
+pub use self::node::*;
 pub use self::transform::*;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct NodeId {
-    index: usize,
-}
-
-impl NodeId {
-    pub const NONE: NodeId = NodeId { index: usize::MAX };
-}
-
-impl Default for NodeId {
-    fn default() -> Self {
-        Self::NONE
-    }
-}
-
-impl NodeId {
-    fn new(index: usize) -> Self {
-        Self { index }
-    }
-}
 
 pub struct SceneGraph {
     nodes: Vec<Spatial>,
@@ -71,17 +49,6 @@ impl SceneGraph {
     pub fn node_mut<T: Node>(&mut self, handle: NodeId) -> NodeRefMut<T> {
         self.spatial_mut(handle).node_mut()
     }
-}
-
-pub trait Ty {
-    fn ty() -> Uuid;
-}
-
-pub trait Node: 'static {
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-    fn name(&self) -> &str;
-    fn ty(&self) -> Uuid;
 }
 
 pub struct Spatial {
@@ -217,19 +184,5 @@ impl<'a, N: Node> Deref for NodeRefMut<'a, N> {
 impl<'a, N: Node> DerefMut for NodeRefMut<'a, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.node.as_mut().unwrap()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn spatialref() {
-        let mut g = SceneGraph::new();
-
-        let id = g.add_node(Spatial::empty());
-
-        g.spatial(id);
     }
 }

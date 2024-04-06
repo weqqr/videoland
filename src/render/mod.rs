@@ -1,10 +1,9 @@
+use crate::asset::{Shader, Mesh, Model};
+use crate::rhi;
 use ahash::AHashMap;
 use glam::{Mat4, Vec2};
 use tracing::info;
 use uuid::Uuid;
-use crate::asset::model::{Mesh, Model};
-use crate::asset::shader::Shader;
-use crate::rhi;
 use winit::window::Window;
 
 use crate::render::egui::{EguiRenderer, PreparedUi};
