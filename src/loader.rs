@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::asset::{AssetId, Vfs};
+use crate::asset::{import_obj, AssetId, Vfs};
 use crate::asset::{Model, Shader, ShaderStage};
 use crate::core::ResMut;
 use hassle_rs::{Dxc, DxcCompiler, DxcIncludeHandler, DxcLibrary, HassleError};
@@ -48,7 +48,7 @@ impl Loader {
 
         self.thread_pool.spawn(move || {
             let response = std::fs::read(path)
-                .map(|data| LoadResponse::Done((id, Model::from_obj(&data))))
+                .map(|data| LoadResponse::Done((id, import_obj(&data))))
                 .unwrap_or_else(|err| LoadResponse::Error(Box::new(err)));
 
             model_tx.send(response).unwrap();

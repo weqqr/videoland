@@ -11,11 +11,42 @@ pub use self::node::*;
 pub use self::transform::*;
 
 pub struct SceneGraph {
+    nodes: Vec<Scene>,
+}
+
+impl SceneGraph {
+    pub fn new() -> Self {
+        Self {
+            nodes: Vec::new(),
+        }
+    }
+
+    pub fn add_scene(&mut self, scene: Scene) -> SceneId {
+        let id = self.nodes.len();
+        self.nodes.push(scene);
+        SceneId::new(id)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SceneId {
+    pub(super) index: usize,
+}
+
+impl SceneId {
+    fn new(index: usize) -> Self {
+        Self {
+            index,
+        }
+    }
+}
+
+pub struct Scene {
     nodes: Vec<Spatial>,
     free_indexes: Vec<usize>,
 }
 
-impl SceneGraph {
+impl Scene {
     pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
