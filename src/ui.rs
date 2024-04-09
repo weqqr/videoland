@@ -1,4 +1,4 @@
-use crate::render::egui::PreparedUi;
+use crate::render::PreparedUi;
 use egui::epaint::Shadow;
 use egui::{
     Align2, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Margin, RichText,

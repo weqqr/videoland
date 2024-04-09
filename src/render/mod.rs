@@ -1,30 +1,22 @@
-use crate::asset::{Shader, Mesh, Model};
-use crate::rhi;
+use std::borrow::Cow;
+
+use crate::asset::{Mesh, Model, Shader};
 use ahash::AHashMap;
 use glam::{Mat4, Vec2};
+use pollster::FutureExt;
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use tracing::info;
 use uuid::Uuid;
+use wgpu;
+use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::render::egui::{EguiRenderer, PreparedUi};
-use crate::render::fg::ResourceContainer;
-
-pub mod egui;
 pub mod fg;
 
 #[derive(Clone, Copy)]
 pub struct Extent2D {
     pub width: u32,
     pub height: u32,
-}
-
-impl From<Extent2D> for rhi::Extent2D {
-    fn from(extent: Extent2D) -> rhi::Extent2D {
-        rhi::Extent2D {
-            width: extent.width,
-            height: extent.height,
-        }
-    }
 }
 
 impl From<Extent2D> for Vec2 {
@@ -42,6 +34,12 @@ impl Extent2D {
     }
 }
 
+#[derive(Default)]
+pub struct PreparedUi {
+    pub shapes: Vec<egui::ClippedPrimitive>,
+    pub textures_delta: egui::TexturesDelta,
+}
+
 #[derive(Clone)]
 pub struct MaterialDesc<'a> {
     pub vertex_shader: &'a Shader,
@@ -49,13 +47,14 @@ pub struct MaterialDesc<'a> {
 }
 
 struct GpuMaterial {
-    bind_group_layout: rhi::BindGroupLayout,
-    pipeline: rhi::Pipeline,
+    bind_group_layout: wgpu::BindGroupLayout,
+    pipeline_layout: wgpu::PipelineLayout,
+    pipeline: wgpu::RenderPipeline,
 }
 
 struct GpuMesh {
     vertex_count: u32,
-    buffer: rhi::Buffer,
+    buffer: wgpu::Buffer,
 }
 
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -66,89 +65,131 @@ struct PushConstants {
 }
 
 pub struct Renderer {
-    context: rhi::Context,
+    instance: wgpu::Instance,
+    surface: wgpu::Surface<'static>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    surface_format: wgpu::TextureFormat,
 
     materials: AHashMap<Uuid, GpuMaterial>,
     meshes: AHashMap<Uuid, GpuMesh>,
 
-    rc: ResourceContainer,
-
-    egui_renderer: EguiRenderer,
+    egui_renderer: egui_wgpu::Renderer,
 }
 
 impl Renderer {
     pub fn new(window: &Window, egui_vs: Shader, egui_fs: Shader) -> Self {
         let size = window.inner_size();
 
-        let context = rhi::Context::new(
-            window,
-            rhi::Extent2D {
-                width: size.width,
-                height: size.height,
-            },
-        )
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::VULKAN,
+            flags: wgpu::InstanceFlags::empty(),
+            dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
+            gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
+        });
+
+        let raw_window_handle = window.window_handle().unwrap().as_raw();
+        let raw_display_handle = window.display_handle().unwrap().as_raw();
+
+        let surface = unsafe {
+            instance.create_surface_unsafe(wgpu::SurfaceTargetUnsafe::RawHandle {
+                raw_display_handle,
+                raw_window_handle,
+            })
+        }
         .unwrap();
 
-        let egui_renderer = EguiRenderer::new(&context, egui_vs, egui_fs);
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                force_fallback_adapter: false,
+                compatible_surface: Some(&surface),
+            })
+            .block_on()
+            .unwrap();
+
+        let (device, queue) = adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    label: None,
+                    required_features: wgpu::Features::SPIRV_SHADER_PASSTHROUGH,
+                    required_limits: wgpu::Limits::default(),
+                },
+                None,
+            )
+            .block_on()
+            .unwrap();
+
+        let surface_format = surface.get_capabilities(&adapter).formats[0];
+
+        let egui_renderer = egui_wgpu::Renderer::new(&device, surface_format, None, 1);
 
         Self {
-            context,
+            instance,
+            device,
+            surface,
+            queue,
+            surface_format,
 
             materials: AHashMap::new(),
             meshes: AHashMap::new(),
-
-            rc: ResourceContainer::new(),
-
             egui_renderer,
         }
     }
 
     pub fn upload_material(&mut self, desc: &MaterialDesc) -> Uuid {
-        let vs = self
-            .context
-            .create_shader_module(desc.vertex_shader.data().to_owned());
-        let fs = self
-            .context
-            .create_shader_module(desc.fragment_shader.data().to_owned());
+        let (vs, fs) = unsafe {
+            let vs = self
+                .device
+                .create_shader_module_spirv(&wgpu::ShaderModuleDescriptorSpirV {
+                    label: None,
+                    source: Cow::Borrowed(bytemuck::cast_slice(desc.vertex_shader.data())),
+                });
+            let fs = self
+                .device
+                .create_shader_module_spirv(&wgpu::ShaderModuleDescriptorSpirV {
+                    label: None,
+                    source: Cow::Borrowed(bytemuck::cast_slice(desc.fragment_shader.data())),
+                });
 
-        let bind_group_layout = self
-            .context
-            .create_bind_group_layout(&rhi::BindGroupLayoutDesc { entries: &[] });
+            (vs, fs)
+        };
 
-        let pipeline = self.context.create_pipeline(&rhi::PipelineDesc {
-            vertex: &vs,
-            fragment: &fs,
-            bind_group_layout: &bind_group_layout,
-            vertex_layout: rhi::VertexBufferLayout {
-                stride: 8 * 4,
-                attributes: &[
-                    // position
-                    rhi::VertexAttribute {
-                        semantic: "POSITION",
-                        binding: 0,
-                        format: rhi::VertexFormat::Float32x3,
-                        offset: 0,
-                        location: 0,
-                    },
-                    // normal
-                    rhi::VertexAttribute {
-                        semantic: "NORMAL",
-                        binding: 0,
-                        format: rhi::VertexFormat::Float32x3,
-                        offset: 3 * 4,
-                        location: 1,
-                    },
-                    // texcoord
-                    rhi::VertexAttribute {
-                        semantic: "TEXCOORD",
-                        binding: 0,
-                        format: rhi::VertexFormat::Float32x2,
-                        offset: 6 * 4,
-                        location: 2,
-                    },
-                ],
-            },
-        });
+        let bind_group_layout =
+            self.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    entries: &[],
+                    label: None,
+                });
+
+        let pipeline_layout = self
+            .device
+            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: None,
+                bind_group_layouts: &[&bind_group_layout],
+                push_constant_ranges: &[],
+            });
+
+        let pipeline = self
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                vertex: wgpu::VertexState {
+                    module: &vs,
+                    entry_point: "vs_main",
+                    buffers: &[crate::asset::Vertex::layout()],
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &fs,
+                    entry_point: "fs_main",
+                    targets: &[Some(self.surface_format.into())],
+                }),
+                label: None,
+                layout: Some(&pipeline_layout),
+                primitive: wgpu::PrimitiveState::default(),
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview: None,
+            });
 
         let id = Uuid::new_v4();
 
@@ -156,6 +197,7 @@ impl Renderer {
             id,
             GpuMaterial {
                 bind_group_layout,
+                pipeline_layout,
                 pipeline,
             },
         );
@@ -175,35 +217,35 @@ impl Renderer {
 
         let mesh_data_size = std::mem::size_of_val(mesh.data()) as u64;
 
-        let staging = self.context.create_buffer(rhi::BufferAllocation {
-            usage: rhi::BufferUsage::VERTEX | rhi::BufferUsage::TRANSFER_SRC,
-            location: rhi::BufferLocation::Cpu,
-            size: mesh_data_size,
-        });
-
-        staging.write_data(0, bytemuck::cast_slice(mesh.data()));
-
-        let gpu_buffer = self.context.create_buffer(rhi::BufferAllocation {
-            usage: rhi::BufferUsage::VERTEX | rhi::BufferUsage::TRANSFER_DST,
-            location: rhi::BufferLocation::Gpu,
-            size: mesh_data_size,
-        });
-
-        self.context.immediate_submit(|cmd| {
-            cmd.copy_buffer_to_buffer(&staging, &gpu_buffer, mesh_data_size);
+        let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(mesh.data()),
+            usage: wgpu::BufferUsages::VERTEX,
         });
 
         self.meshes.insert(
             renderable_mesh_id,
             GpuMesh {
                 vertex_count: mesh.vertex_count(),
-                buffer: gpu_buffer,
+                buffer,
             },
         );
     }
 
     pub fn resize(&mut self, size: Extent2D) {
-        self.context.resize_swapchain(size);
+        self.surface.configure(
+            &self.device,
+            &wgpu::SurfaceConfiguration {
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                format: self.surface_format,
+                width: size.width,
+                height: size.height,
+                present_mode: wgpu::PresentMode::Fifo,
+                desired_maximum_frame_latency: 2,
+                alpha_mode: wgpu::CompositeAlphaMode::Auto,
+                view_formats: Vec::new(),
+            },
+        );
     }
 
     pub fn render(
@@ -212,45 +254,51 @@ impl Renderer {
         prepared_ui: &PreparedUi,
         viewport_extent: Extent2D,
     ) {
-        let frame = self.context.acquire_next_frame();
+        let frame = self.surface.get_current_texture().unwrap();
+        let frame_view = frame.texture.create_view(&Default::default());
 
-        let command_buffer = self.context.begin_command_buffer();
+        let mut encoder = self.device.create_command_encoder(&Default::default());
 
-        command_buffer.set_scissor(rhi::Scissor {
-            offset: rhi::Offset2D::ZERO,
-            extent: viewport_extent.into(),
+        for (id, delta) in &prepared_ui.textures_delta.set {
+            self.egui_renderer
+                .update_texture(&self.device, &self.queue, *id, delta);
+        }
+
+        self.egui_renderer.update_buffers(&self.device, &self.queue, &mut encoder, &prepared_ui.shapes, &egui_wgpu::ScreenDescriptor {
+            size_in_pixels: [viewport_extent.width, viewport_extent.height],
+            pixels_per_point: 1.0,
         });
 
-        command_buffer.set_viewport(rhi::Viewport {
-            x: 0.0,
-            y: 0.0,
-            width: viewport_extent.width as f32,
-            height: viewport_extent.height as f32,
-            min_depth: 0.0,
-            max_depth: 1.0,
-        });
+        {
+            let mut rp = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &frame_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.1,
+                            g: 0.2,
+                            b: 0.3,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
 
-        command_buffer.texture_barrier(
-            rhi::TextureLayout::Present,
-            rhi::TextureLayout::Color,
-            frame.texture(),
-        );
+            self.egui_renderer.render(&mut rp, &prepared_ui.shapes, &egui_wgpu::ScreenDescriptor {
+                size_in_pixels: [viewport_extent.width, viewport_extent.height],
+                pixels_per_point: 1.0,
+            });
+        }
 
-        command_buffer.set_render_target(frame.texture());
-        command_buffer.clear_texture(frame.texture(), [0.9, 0.6, 0.3, 1.0]);
-
-        self.egui_renderer.render(
-            &self.context,
-            &command_buffer,
-            prepared_ui,
-            viewport_extent.into(),
-        );
-
-        command_buffer.texture_barrier(
-            rhi::TextureLayout::Color,
-            rhi::TextureLayout::Present,
-            frame.texture(),
-        );
+        for id in &prepared_ui.textures_delta.free {
+            self.egui_renderer.free_texture(id);
+        }
 
         /*
                 let material = self.materials.get(&self.material).unwrap();
@@ -268,13 +316,10 @@ impl Renderer {
                     command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
                     command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
                 }
-
-                self.egui_renderer
-                    .render(&command_buffer, ui, viewport_extent.into());
         */
 
-        self.context.submit_command_buffer(command_buffer);
+        self.queue.submit([encoder.finish()]);
 
-        self.context.submit_frame();
+        frame.present();
     }
 }

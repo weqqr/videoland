@@ -3,7 +3,7 @@ use std::io::Cursor;
 use glam::{Vec2, Vec3};
 use uuid::Uuid;
 
-use crate::rhi;
+use wgpu;
 
 pub struct Vertex {
     pub position: Vec3,
@@ -18,32 +18,27 @@ impl Vertex {
         data.extend_from_slice(&self.texcoord.to_array());
     }
 
-    pub fn layout() -> rhi::VertexBufferLayout<'static> {
-        rhi::VertexBufferLayout {
-            stride: 8 * 4,
+    pub fn layout() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
             attributes: &[
-                rhi::VertexAttribute {
-                    binding: 0,
-                    format: rhi::VertexFormat::Float32x3,
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
                     offset: 0,
-                    location: 0,
-                    semantic: "POSITION",
+                    shader_location: 0,
                 },
-                rhi::VertexAttribute {
-                    binding: 0,
-                    format: rhi::VertexFormat::Float32x3,
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x3,
                     offset: 3 * 4,
-                    location: 1,
-                    semantic: "NORMAL",
+                    shader_location: 1,
                 },
-                rhi::VertexAttribute {
-                    binding: 0,
-                    format: rhi::VertexFormat::Float32x2,
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
                     offset: 6 * 4,
-                    location: 2,
-                    semantic: "TEXCOORD",
+                    shader_location: 2,
                 },
             ],
+            array_stride: 8 * 4,
+            step_mode: wgpu::VertexStepMode::Vertex,
         }
     }
 }

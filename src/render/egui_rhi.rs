@@ -5,12 +5,6 @@ use egui::epaint::Primitive;
 use egui::{ClippedPrimitive, ImageData, TextureId, TexturesDelta};
 use glam::Vec2;
 
-#[derive(Default)]
-pub struct PreparedUi {
-    pub shapes: Vec<ClippedPrimitive>,
-    pub textures_delta: TexturesDelta,
-}
-
 pub struct EguiRenderer {
     vertex_buffer: rhi::Buffer,
     index_buffer: rhi::Buffer,

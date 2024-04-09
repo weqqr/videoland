@@ -7,6 +7,7 @@ pub mod core;
 pub mod input;
 pub mod loader;
 pub mod render;
+#[cfg(feature = "d3d12")]
 pub mod rhi;
 pub mod scene;
 pub mod settings;
@@ -28,8 +29,8 @@ use winit::window::{Window, WindowBuilder};
 use crate::asset::{ShaderStage, Vfs};
 use crate::core::{EventQueue, Registry, Schedule, Stage};
 use crate::input::InputState;
-use crate::loader::{Loader, ShaderCompiler};
-use crate::render::egui::PreparedUi;
+use crate::loader::{Loader, ShaderBytecode, ShaderCompiler};
+use crate::render::PreparedUi;
 use crate::render::{Extent2D, Renderer};
 use crate::scene::SceneGraph;
 use crate::settings::Settings;
@@ -59,10 +60,10 @@ impl AppState {
         let shader_compiler = ShaderCompiler::new();
 
         let egui_vs = shader_compiler
-            .compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Vertex)
+            .compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Vertex, ShaderBytecode::SpirV)
             .unwrap();
         let egui_fs = shader_compiler
-            .compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Fragment)
+            .compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Fragment, ShaderBytecode::SpirV)
             .unwrap();
 
         let renderer = Renderer::new(&window, egui_vs, egui_fs);

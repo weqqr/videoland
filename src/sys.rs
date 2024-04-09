@@ -1,7 +1,7 @@
 pub use crate::core::clear_events;
 
 use crate::core::{Res, ResMut};
-use crate::render::egui::PreparedUi;
+use crate::render::PreparedUi;
 use crate::render::{Extent2D, Renderer};
 use crate::ui::Ui;
 use winit::window::Window;

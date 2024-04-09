@@ -91,6 +91,11 @@ fn read_shader_source(path: &str) -> Result<String, Error> {
     Ok(std::fs::read_to_string(path)?)
 }
 
+pub enum ShaderBytecode {
+    SpirV,
+    Dxil,
+}
+
 struct IncludeHandler {}
 
 impl IncludeHandler {
@@ -141,7 +146,7 @@ impl ShaderCompiler {
         }
     }
 
-    pub fn compile_hlsl(&self, path: &str, stage: ShaderStage) -> Result<Shader, Error> {
+    pub fn compile_hlsl(&self, path: &str, stage: ShaderStage, bytecode: ShaderBytecode) -> Result<Shader, Error> {
         let source = read_shader_source(path)?;
 
         let blob = self
@@ -151,7 +156,10 @@ impl ShaderCompiler {
 
         let profile = shader_profile_name(stage);
         let entry_point = shader_entry_point(stage);
-        let args = ["-HV 2021", "-I /"].as_slice();
+        let args = match bytecode {
+            ShaderBytecode::SpirV => ["-HV 2021", "-I /", "-spirv"].as_slice(),
+            ShaderBytecode::Dxil => ["-HV 2021", "-I /"].as_slice(),
+        };
         let mut include_handler = IncludeHandler::new();
         let defines = &[];
         let result = self.compiler.compile(
