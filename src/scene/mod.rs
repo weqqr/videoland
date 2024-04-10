@@ -1,4 +1,5 @@
 use std::ops::{Deref, DerefMut};
+use serde::ser::SerializeStruct;
 
 mod camera;
 mod mesh;
@@ -65,6 +66,10 @@ impl Scene {
         }
     }
 
+    pub fn nodes(&self) -> &[Spatial] {
+        &self.nodes
+    }
+
     pub fn spatial(&self, handle: NodeId) -> &Spatial {
         self.nodes.get(handle.index).unwrap()
     }
@@ -82,6 +87,7 @@ impl Scene {
     }
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Spatial {
     parent: NodeId,
     children: Vec<NodeId>,

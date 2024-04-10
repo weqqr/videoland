@@ -4,6 +4,7 @@ use crate::asset::AssetId;
 use crate::scene::{Node, NodeType};
 use uuid::{uuid, Uuid};
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Mesh {
     mesh_id: AssetId,
 }
@@ -20,6 +21,7 @@ impl NodeType for Mesh {
     }
 }
 
+#[typetag::serde]
 impl Node for Mesh {
     fn as_any(&self) -> &dyn Any {
         todo!()

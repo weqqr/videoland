@@ -12,7 +12,8 @@ pub use self::model::*;
 pub use self::scene::*;
 pub use self::shader::*;
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct AssetId(Uuid);
 
 impl AssetId {

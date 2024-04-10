@@ -5,7 +5,7 @@ use uuid::{uuid, Uuid};
 
 use crate::scene::{Node, NodeType};
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Camera {
     pub position: Vec3,
     pub pitch: f32,
@@ -70,6 +70,7 @@ impl NodeType for Camera {
     }
 }
 
+#[typetag::serde]
 impl Node for Camera {
     fn as_any(&self) -> &dyn Any {
         todo!()

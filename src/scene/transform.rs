@@ -2,7 +2,7 @@ use std::ops::Mul;
 
 use glam::{Mat4, Quat, Vec3};
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Transform {
     pub position: Vec3,
     pub rotation: Quat,
