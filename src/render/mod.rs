@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use crate::asset::{Mesh, Model, Shader};
+use crate::scene::Scene;
 use ahash::AHashMap;
 use glam::{Mat4, Vec2};
 use pollster::FutureExt;
@@ -13,7 +14,7 @@ use winit::window::Window;
 
 pub mod fg;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Extent2D {
     pub width: u32,
     pub height: u32,
@@ -75,6 +76,7 @@ pub struct Renderer {
     meshes: AHashMap<Uuid, GpuMesh>,
 
     egui_renderer: egui_wgpu::Renderer,
+    egui_render_targets: AHashMap<egui::TextureId, (wgpu::TextureView, Extent2D)>,
 }
 
 impl Renderer {
@@ -134,6 +136,7 @@ impl Renderer {
             materials: AHashMap::new(),
             meshes: AHashMap::new(),
             egui_renderer,
+            egui_render_targets: AHashMap::new(),
         }
     }
 
@@ -217,11 +220,13 @@ impl Renderer {
 
         let mesh_data_size = std::mem::size_of_val(mesh.data()) as u64;
 
-        let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(mesh.data()),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
+        let buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(mesh.data()),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
 
         self.meshes.insert(
             renderable_mesh_id,
@@ -240,12 +245,115 @@ impl Renderer {
                 format: self.surface_format,
                 width: size.width,
                 height: size.height,
-                present_mode: wgpu::PresentMode::Fifo,
+                present_mode: wgpu::PresentMode::AutoVsync,
                 desired_maximum_frame_latency: 2,
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
                 view_formats: Vec::new(),
             },
         );
+    }
+
+    pub fn create_egui_render_target(&mut self, size: Extent2D) -> egui::TextureId {
+        let texture = self.device.create_texture(&wgpu::TextureDescriptor {
+            label: None,
+            size: wgpu::Extent3d {
+                width: size.width,
+                height: size.height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+
+        let texture_view = texture.create_view(&Default::default());
+        let texture_id = self.egui_renderer.register_native_texture(
+            &self.device,
+            &texture_view,
+            wgpu::FilterMode::Nearest,
+        );
+
+        self.egui_render_targets
+            .insert(texture_id, (texture_view, size));
+
+        texture_id
+    }
+
+    fn resize_egui_render_target(&mut self, texture_id: egui::TextureId, size: Extent2D) {
+        self.egui_render_targets
+            .entry(texture_id)
+            .and_modify(|(view, rt_size)| {
+                if size != *rt_size {
+                    return;
+                }
+
+                let texture = self.device.create_texture(&wgpu::TextureDescriptor {
+                    label: None,
+                    size: wgpu::Extent3d {
+                        width: size.width,
+                        height: size.height,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                        | wgpu::TextureUsages::TEXTURE_BINDING,
+                    view_formats: &[],
+                });
+
+                let texture_view = texture.create_view(&Default::default());
+
+                self.egui_renderer.update_egui_texture_from_wgpu_texture(
+                    &self.device,
+                    &texture_view,
+                    wgpu::FilterMode::Nearest,
+                    texture_id,
+                );
+
+                *view = texture_view;
+            });
+    }
+
+    pub fn render_scene_to_egui_texture(
+        &mut self,
+        texture_id: egui::TextureId,
+        size: Extent2D,
+        scene: &Scene,
+    ) {
+        self.resize_egui_render_target(texture_id, size);
+
+        let (view, _) = self.egui_render_targets.get(&texture_id).unwrap();
+
+        let mut encoder = self.device.create_command_encoder(&Default::default());
+
+        {
+            let rp = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: ((scene.bg_color >> 24) & 0xFF) as f64 / 255.0,
+                            g: ((scene.bg_color >> 16) & 0xFF) as f64 / 255.0,
+                            b: ((scene.bg_color >> 8) & 0xFF) as f64 / 255.0,
+                            a: ((scene.bg_color) & 0xFF) as f64 / 255.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+        }
+
+        self.queue.submit([encoder.finish()]);
     }
 
     pub fn render(
@@ -264,10 +372,16 @@ impl Renderer {
                 .update_texture(&self.device, &self.queue, *id, delta);
         }
 
-        self.egui_renderer.update_buffers(&self.device, &self.queue, &mut encoder, &prepared_ui.shapes, &egui_wgpu::ScreenDescriptor {
-            size_in_pixels: [viewport_extent.width, viewport_extent.height],
-            pixels_per_point: 1.0,
-        });
+        self.egui_renderer.update_buffers(
+            &self.device,
+            &self.queue,
+            &mut encoder,
+            &prepared_ui.shapes,
+            &egui_wgpu::ScreenDescriptor {
+                size_in_pixels: [viewport_extent.width, viewport_extent.height],
+                pixels_per_point: 1.0,
+            },
+        );
 
         {
             let mut rp = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -277,9 +391,9 @@ impl Renderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
@@ -290,33 +404,19 @@ impl Renderer {
                 occlusion_query_set: None,
             });
 
-            self.egui_renderer.render(&mut rp, &prepared_ui.shapes, &egui_wgpu::ScreenDescriptor {
-                size_in_pixels: [viewport_extent.width, viewport_extent.height],
-                pixels_per_point: 1.0,
-            });
+            self.egui_renderer.render(
+                &mut rp,
+                &prepared_ui.shapes,
+                &egui_wgpu::ScreenDescriptor {
+                    size_in_pixels: [viewport_extent.width, viewport_extent.height],
+                    pixels_per_point: 1.0,
+                },
+            );
         }
 
         for id in &prepared_ui.textures_delta.free {
             self.egui_renderer.free_texture(id);
         }
-
-        /*
-                let material = self.materials.get(&self.material).unwrap();
-
-                command_buffer.bind_pipeline(&material.pipeline);
-
-                for (_, gpu_mesh) in self.meshes.iter() {
-                    let pc = PushConstants {
-                        camera_transform,
-                        transform: Mat4::IDENTITY, // transform.matrix(),
-                    };
-
-                    command_buffer.set_push_constants(&material.pipeline, 0, bytemuck::bytes_of(&pc));
-
-                    command_buffer.bind_vertex_buffer(&gpu_mesh.buffer);
-                    command_buffer.draw(gpu_mesh.vertex_count, 1, 0, 0);
-                }
-        */
 
         self.queue.submit([encoder.finish()]);
 

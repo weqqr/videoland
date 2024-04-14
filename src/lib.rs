@@ -4,6 +4,7 @@
 
 pub mod asset;
 pub mod core;
+pub mod editor;
 pub mod input;
 pub mod loader;
 pub mod render;
@@ -60,10 +61,18 @@ impl AppState {
         let shader_compiler = ShaderCompiler::new();
 
         let egui_vs = shader_compiler
-            .compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Vertex, ShaderBytecode::SpirV)
+            .compile_hlsl(
+                "videoland/data/shaders/egui.hlsl",
+                ShaderStage::Vertex,
+                ShaderBytecode::SpirV,
+            )
             .unwrap();
         let egui_fs = shader_compiler
-            .compile_hlsl("videoland/data/shaders/egui.hlsl", ShaderStage::Fragment, ShaderBytecode::SpirV)
+            .compile_hlsl(
+                "videoland/data/shaders/egui.hlsl",
+                ShaderStage::Fragment,
+                ShaderBytecode::SpirV,
+            )
             .unwrap();
 
         let renderer = Renderer::new(&window, egui_vs, egui_fs);
@@ -169,7 +178,7 @@ impl App {
 
     pub fn run(self) {
         tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
+            .with_max_level(tracing::Level::INFO)
             .init();
 
         let event_loop = EventLoop::new().unwrap();

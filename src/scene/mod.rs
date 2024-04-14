@@ -1,5 +1,4 @@
 use std::ops::{Deref, DerefMut};
-use serde::ser::SerializeStruct;
 
 mod camera;
 mod mesh;
@@ -17,15 +16,24 @@ pub struct SceneGraph {
 
 impl SceneGraph {
     pub fn new() -> Self {
-        Self {
-            nodes: Vec::new(),
-        }
+        Self { nodes: Vec::new() }
     }
 
     pub fn add_scene(&mut self, scene: Scene) -> SceneId {
         let id = self.nodes.len();
         self.nodes.push(scene);
         SceneId::new(id)
+    }
+
+    pub fn scene(&self, id: SceneId) -> Option<&Scene> {
+        self.nodes.get(id.index)
+    }
+
+    pub fn scenes(&self) -> impl Iterator<Item = (SceneId, &Scene)> {
+        self.nodes
+            .iter()
+            .enumerate()
+            .map(|(id, scene)| (SceneId::new(id), scene))
     }
 }
 
@@ -36,13 +44,12 @@ pub struct SceneId {
 
 impl SceneId {
     fn new(index: usize) -> Self {
-        Self {
-            index,
-        }
+        Self { index }
     }
 }
 
 pub struct Scene {
+    pub bg_color: u32,
     nodes: Vec<Spatial>,
     free_indexes: Vec<usize>,
 }
@@ -50,6 +57,7 @@ pub struct Scene {
 impl Scene {
     pub fn new() -> Self {
         Self {
+            bg_color: 0x102030FF,
             nodes: Vec::new(),
             free_indexes: Vec::new(),
         }
