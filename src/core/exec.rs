@@ -51,7 +51,15 @@ impl Schedule {
         }
     }
 
-    pub fn add_system<I, S: System + 'static>(&mut self, stage: Stage, s: impl IntoSystem<I, S>) {
+    pub fn add_init<I, S: System + 'static>(&mut self, s: impl IntoSystem<I, S>) {
+        self.plan_at(Stage::Init, s)
+    }
+
+    pub fn add<I, S: System + 'static>(&mut self, s: impl IntoSystem<I, S>) {
+        self.plan_at(Stage::EachStep, s)
+    }
+
+    pub fn plan_at<I, S: System + 'static>(&mut self, stage: Stage, s: impl IntoSystem<I, S>) {
         let systems = self.systems.entry(stage).or_default();
         systems.push(Box::new(s.into_system()));
     }

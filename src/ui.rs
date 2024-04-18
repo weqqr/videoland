@@ -86,7 +86,7 @@ impl Ui {
 
     pub fn status_bar(&self, data: &[(&str, &str)]) {
         egui::Window::new("--videoland-status-bar")
-            .anchor(Align2::LEFT_BOTTOM, Vec2::ZERO)
+            .anchor(Align2::LEFT_TOP, Vec2::ZERO)
             .title_bar(false)
             .movable(false)
             .collapsible(false)
@@ -97,7 +97,7 @@ impl Ui {
                 rounding: Rounding::ZERO,
                 shadow: Shadow::NONE,
                 fill: Color32::BLACK,
-                stroke: Stroke::new(1.0, Color32::GRAY),
+                stroke: Stroke::new(1.0, Color32::DARK_GRAY),
             })
             .show(&self.ctx, |ui| {
                 status_data(ui, data);
@@ -134,7 +134,7 @@ pub fn status_data(ui: &mut egui::Ui, data: &[(&str, &str)]) {
 
         for (index, (key, value)) in data.iter().enumerate() {
             label(ui, *key, Color32::WHITE);
-            ui.add_space(2.0);
+            ui.add_space(6.0);
             label(ui, *value, Color32::YELLOW);
 
             if index < data.len() - 1 {

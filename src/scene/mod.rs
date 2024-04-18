@@ -5,6 +5,8 @@ mod mesh;
 mod node;
 mod transform;
 
+use slab::Slab;
+
 pub use self::camera::*;
 pub use self::mesh::*;
 pub use self::node::*;
@@ -12,17 +14,29 @@ pub use self::transform::*;
 
 pub struct SceneGraph {
     nodes: Vec<Scene>,
+    primary_scene_id: Option<SceneId>,
 }
 
 impl SceneGraph {
     pub fn new() -> Self {
-        Self { nodes: Vec::new() }
+        Self {
+            nodes: Vec::new(),
+            primary_scene_id: None,
+        }
     }
 
     pub fn add_scene(&mut self, scene: Scene) -> SceneId {
         let id = self.nodes.len();
         self.nodes.push(scene);
         SceneId::new(id)
+    }
+
+    pub fn set_primary_scene_id(&mut self, id: SceneId) {
+        self.primary_scene_id = Some(id);
+    }
+
+    pub fn primary_scene_id(&self) -> SceneId {
+        self.primary_scene_id.expect("primary scene not set")
     }
 
     pub fn scene(&self, id: SceneId) -> Option<&Scene> {
@@ -50,32 +64,25 @@ impl SceneId {
 
 pub struct Scene {
     pub bg_color: u32,
-    nodes: Vec<Spatial>,
-    free_indexes: Vec<usize>,
+    nodes: Slab<Spatial>,
 }
 
 impl Scene {
     pub fn new() -> Self {
         Self {
             bg_color: 0x102030FF,
-            nodes: Vec::new(),
-            free_indexes: Vec::new(),
+            nodes: Slab::new(),
         }
     }
 
     pub fn add_node(&mut self, node: Spatial) -> NodeId {
-        if let Some(id) = self.free_indexes.pop() {
-            self.nodes[id] = node;
-            NodeId::new(id)
-        } else {
-            let id = self.nodes.len();
-            self.nodes.push(node);
-            NodeId::new(id)
-        }
+        NodeId::new(self.nodes.insert(node))
     }
 
-    pub fn nodes(&self) -> &[Spatial] {
-        &self.nodes
+    pub fn nodes(&self) -> impl Iterator<Item = (NodeId, &Spatial)> {
+        self.nodes
+            .iter()
+            .map(|(id, spatial)| (NodeId::new(id), spatial))
     }
 
     pub fn spatial(&self, handle: NodeId) -> &Spatial {

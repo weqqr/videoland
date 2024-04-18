@@ -15,9 +15,3 @@ pub fn import_scenejson(data: &[u8]) -> Scene {
 
     scene
 }
-
-pub fn export_scenejson(scene: &Scene) -> Vec<u8> {
-    serde_json::to_vec(&SceneData {
-        nodes: scene.nodes().to_vec(),
-    }).unwrap()
-}
