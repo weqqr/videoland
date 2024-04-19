@@ -3,6 +3,7 @@ use std::ops::{Deref, DerefMut};
 mod camera;
 mod mesh;
 mod node;
+mod pivot;
 mod transform;
 
 use slab::Slab;
@@ -10,6 +11,7 @@ use slab::Slab;
 pub use self::camera::*;
 pub use self::mesh::*;
 pub use self::node::*;
+pub use self::pivot::*;
 pub use self::transform::*;
 
 pub struct SceneGraph {
@@ -114,18 +116,18 @@ pub struct Spatial {
     transform: Transform,
     visible: bool,
     enabled: bool,
-    node: Option<Node2>,
+    node: Node,
 }
 
 impl Spatial {
-    pub fn new() -> Self {
+    pub fn new(node: impl Into<Node>) -> Self {
         Self {
             parent: NodeId::NONE,
             children: Vec::new(),
             transform: Transform::default(),
             visible: true,
             enabled: true,
-            node: None,
+            node: node.into(),
         }
     }
 
@@ -136,9 +138,7 @@ impl Spatial {
             transform: &self.transform,
             visible: &self.visible,
             enabled: &self.enabled,
-            node: self
-                .node
-                .as_ref(),
+            node: &self.node,
         }
     }
 
@@ -149,9 +149,7 @@ impl Spatial {
             transform: &mut self.transform,
             visible: &mut self.visible,
             enabled: &mut self.enabled,
-            node: self
-                .node
-                .as_mut(),
+            node: &mut self.node,
         }
     }
 
@@ -201,14 +199,14 @@ pub struct NodeRef<'a> {
     pub transform: &'a Transform,
     pub visible: &'a bool,
     pub enabled: &'a bool,
-    pub node: Option<&'a Node2>,
+    pub node: &'a Node,
 }
 
 impl<'a> Deref for NodeRef<'a> {
-    type Target = Node2;
+    type Target = Node;
 
     fn deref(&self) -> &Self::Target {
-        self.node.unwrap()
+        self.node
     }
 }
 
@@ -218,19 +216,19 @@ pub struct NodeRefMut<'a> {
     pub transform: &'a mut Transform,
     pub visible: &'a mut bool,
     pub enabled: &'a mut bool,
-    pub node: Option<&'a mut Node2>,
+    pub node: &'a mut Node,
 }
 
 impl<'a> Deref for NodeRefMut<'a> {
-    type Target = Node2;
+    type Target = Node;
 
     fn deref(&self) -> &Self::Target {
-        self.node.as_ref().unwrap()
+        self.node
     }
 }
 
 impl<'a> DerefMut for NodeRefMut<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.node.as_mut().unwrap()
+        self.node
     }
 }

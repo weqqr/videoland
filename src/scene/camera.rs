@@ -1,5 +1,7 @@
 use glam::{vec3, Mat4, Quat, Vec3};
 
+use crate::scene::Node;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Camera {
     pub position: Vec3,
@@ -56,5 +58,11 @@ impl Camera {
         let world_translation = Mat4::from_translation(-self.position);
 
         projection * world_rotation * world_translation
+    }
+}
+
+impl From<Camera> for Node {
+    fn from(value: Camera) -> Node {
+        Node::Camera(value)
     }
 }

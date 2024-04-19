@@ -1,8 +1,8 @@
-use crate::scene::{Camera, Mesh};
+use crate::scene::{Camera, Mesh, Pivot};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Node2 {
-    Pivot,
+pub enum Node {
+    Pivot(Pivot),
     Mesh(Mesh),
     Camera(Camera),
 }
