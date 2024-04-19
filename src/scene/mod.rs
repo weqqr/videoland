@@ -14,14 +14,14 @@ pub use self::transform::*;
 
 pub struct SceneGraph {
     nodes: Vec<Scene>,
-    primary_scene_id: Option<SceneId>,
+    current_scene_id: Option<SceneId>,
 }
 
 impl SceneGraph {
     pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
-            primary_scene_id: None,
+            current_scene_id: None,
         }
     }
 
@@ -31,12 +31,17 @@ impl SceneGraph {
         SceneId::new(id)
     }
 
-    pub fn set_primary_scene_id(&mut self, id: SceneId) {
-        self.primary_scene_id = Some(id);
+    pub fn set_current_scene_id(&mut self, id: SceneId) {
+        self.current_scene_id = Some(id);
     }
 
-    pub fn primary_scene_id(&self) -> SceneId {
-        self.primary_scene_id.expect("primary scene not set")
+    pub fn current_scene_id(&self) -> SceneId {
+        self.current_scene_id.expect("current scene not set")
+    }
+
+    pub fn current_scene(&self) -> &Scene {
+        self.scene(self.current_scene_id())
+            .expect("current scene doesn't exist")
     }
 
     pub fn scene(&self, id: SceneId) -> Option<&Scene> {
@@ -89,7 +94,7 @@ impl Scene {
         self.nodes.get(handle.index).unwrap()
     }
 
-    pub fn node<T: Node>(&self, handle: NodeId) -> NodeRef<T> {
+    pub fn node(&self, handle: NodeId) -> NodeRef {
         self.spatial(handle).node()
     }
 
@@ -97,7 +102,7 @@ impl Scene {
         self.nodes.get_mut(handle.index).unwrap()
     }
 
-    pub fn node_mut<T: Node>(&mut self, handle: NodeId) -> NodeRefMut<T> {
+    pub fn node_mut(&mut self, handle: NodeId) -> NodeRefMut {
         self.spatial_mut(handle).node_mut()
     }
 }
@@ -109,18 +114,11 @@ pub struct Spatial {
     transform: Transform,
     visible: bool,
     enabled: bool,
-    node: Option<Box<dyn Node>>,
+    node: Option<Node2>,
 }
 
 impl Spatial {
-    pub fn new<N: Node>(node: N) -> Self {
-        Self {
-            node: Some(Box::new(node)),
-            ..Self::empty()
-        }
-    }
-
-    pub fn empty() -> Self {
+    pub fn new() -> Self {
         Self {
             parent: NodeId::NONE,
             children: Vec::new(),
@@ -131,7 +129,7 @@ impl Spatial {
         }
     }
 
-    pub fn node<N: Node>(&self) -> NodeRef<N> {
+    pub fn node(&self) -> NodeRef {
         NodeRef {
             parent: &self.parent,
             children: &self.children,
@@ -140,12 +138,11 @@ impl Spatial {
             enabled: &self.enabled,
             node: self
                 .node
-                .as_ref()
-                .map(|x| x.as_any().downcast_ref().unwrap()),
+                .as_ref(),
         }
     }
 
-    pub fn node_mut<N: Node>(&mut self) -> NodeRefMut<N> {
+    pub fn node_mut(&mut self) -> NodeRefMut {
         NodeRefMut {
             parent: &mut self.parent,
             children: &mut self.children,
@@ -154,8 +151,7 @@ impl Spatial {
             enabled: &mut self.enabled,
             node: self
                 .node
-                .as_mut()
-                .map(|x| x.as_any_mut().downcast_mut().unwrap()),
+                .as_mut(),
         }
     }
 
@@ -199,41 +195,41 @@ impl Spatial {
     }
 }
 
-pub struct NodeRef<'a, N: Node> {
+pub struct NodeRef<'a> {
     pub parent: &'a NodeId,
     pub children: &'a Vec<NodeId>,
     pub transform: &'a Transform,
     pub visible: &'a bool,
     pub enabled: &'a bool,
-    pub node: Option<&'a N>,
+    pub node: Option<&'a Node2>,
 }
 
-impl<'a, N: Node> Deref for NodeRef<'a, N> {
-    type Target = N;
+impl<'a> Deref for NodeRef<'a> {
+    type Target = Node2;
 
     fn deref(&self) -> &Self::Target {
         self.node.unwrap()
     }
 }
 
-pub struct NodeRefMut<'a, N: Node> {
+pub struct NodeRefMut<'a> {
     pub parent: &'a mut NodeId,
     pub children: &'a mut Vec<NodeId>,
     pub transform: &'a mut Transform,
     pub visible: &'a mut bool,
     pub enabled: &'a mut bool,
-    pub node: Option<&'a mut N>,
+    pub node: Option<&'a mut Node2>,
 }
 
-impl<'a, N: Node> Deref for NodeRefMut<'a, N> {
-    type Target = N;
+impl<'a> Deref for NodeRefMut<'a> {
+    type Target = Node2;
 
     fn deref(&self) -> &Self::Target {
         self.node.as_ref().unwrap()
     }
 }
 
-impl<'a, N: Node> DerefMut for NodeRefMut<'a, N> {
+impl<'a> DerefMut for NodeRefMut<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.node.as_mut().unwrap()
     }

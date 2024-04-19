@@ -3,6 +3,7 @@ pub use crate::core::clear_events;
 use crate::core::{Res, ResMut};
 use crate::render::PreparedUi;
 use crate::render::{Extent2D, Renderer};
+use crate::scene::SceneGraph;
 use crate::ui::Ui;
 use winit::window::Window;
 
@@ -15,6 +16,7 @@ pub fn render(
     window: Res<Window>,
     prepared_ui: Res<PreparedUi>,
     mut renderer: ResMut<Renderer>,
+    sg: Res<SceneGraph>,
 ) {
     let window_size = window.inner_size();
 
@@ -24,7 +26,7 @@ pub fn render(
     };
 
     renderer.render(
-        /*g.current_scene().primary_camera().view_projection(extent.aspect_ratio()),*/
+        // g.current_scene().primary_camera().view_projection(extent.aspect_ratio()),
         Default::default(),
         &prepared_ui,
         extent,

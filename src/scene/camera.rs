@@ -1,11 +1,6 @@
-use std::any::Any;
-
 use glam::{vec3, Mat4, Quat, Vec3};
-use uuid::{uuid, Uuid};
 
-use crate::scene::{Node, NodeType};
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Camera {
     pub position: Vec3,
     pub pitch: f32,
@@ -61,30 +56,5 @@ impl Camera {
         let world_translation = Mat4::from_translation(-self.position);
 
         projection * world_rotation * world_translation
-    }
-}
-
-impl NodeType for Camera {
-    fn node_type() -> Uuid {
-        uuid!("04e78c91-f252-4d09-bcb9-a1f182d14cfa")
-    }
-}
-
-#[typetag::serde]
-impl Node for Camera {
-    fn as_any(&self) -> &dyn Any {
-        todo!()
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        todo!()
-    }
-
-    fn name(&self) -> &str {
-        todo!()
-    }
-
-    fn ty(&self) -> Uuid {
-        <Self as NodeType>::node_type()
     }
 }
