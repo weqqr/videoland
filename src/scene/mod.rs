@@ -71,6 +71,7 @@ impl SceneId {
 
 pub struct Scene {
     pub bg_color: u32,
+    primary_camera_id: Option<NodeId>,
     nodes: Slab<Spatial>,
 }
 
@@ -78,12 +79,21 @@ impl Scene {
     pub fn new() -> Self {
         Self {
             bg_color: 0x102030FF,
+            primary_camera_id: None,
             nodes: Slab::new(),
         }
     }
 
     pub fn add_node(&mut self, node: Spatial) -> NodeId {
         NodeId::new(self.nodes.insert(node))
+    }
+
+    pub fn set_primary_camera_id(&mut self, id: NodeId) {
+        self.primary_camera_id = Some(id);
+    }
+
+    pub fn primary_camera(&self) -> SpatialRef {
+        self.node(self.primary_camera_id.expect("primary camera not set"))
     }
 
     pub fn nodes(&self) -> impl Iterator<Item = (NodeId, &Spatial)> {
@@ -96,7 +106,7 @@ impl Scene {
         self.nodes.get(handle.index).unwrap()
     }
 
-    pub fn node(&self, handle: NodeId) -> NodeRef {
+    pub fn node(&self, handle: NodeId) -> SpatialRef {
         self.spatial(handle).node()
     }
 
@@ -104,7 +114,7 @@ impl Scene {
         self.nodes.get_mut(handle.index).unwrap()
     }
 
-    pub fn node_mut(&mut self, handle: NodeId) -> NodeRefMut {
+    pub fn node_mut(&mut self, handle: NodeId) -> SpatialRefMut {
         self.spatial_mut(handle).node_mut()
     }
 }
@@ -131,8 +141,8 @@ impl Spatial {
         }
     }
 
-    pub fn node(&self) -> NodeRef {
-        NodeRef {
+    pub fn node(&self) -> SpatialRef {
+        SpatialRef {
             parent: &self.parent,
             children: &self.children,
             transform: &self.transform,
@@ -142,8 +152,8 @@ impl Spatial {
         }
     }
 
-    pub fn node_mut(&mut self) -> NodeRefMut {
-        NodeRefMut {
+    pub fn node_mut(&mut self) -> SpatialRefMut {
+        SpatialRefMut {
             parent: &mut self.parent,
             children: &mut self.children,
             transform: &mut self.transform,
@@ -193,7 +203,7 @@ impl Spatial {
     }
 }
 
-pub struct NodeRef<'a> {
+pub struct SpatialRef<'a> {
     pub parent: &'a NodeId,
     pub children: &'a Vec<NodeId>,
     pub transform: &'a Transform,
@@ -202,7 +212,7 @@ pub struct NodeRef<'a> {
     pub node: &'a Node,
 }
 
-impl<'a> Deref for NodeRef<'a> {
+impl<'a> Deref for SpatialRef<'a> {
     type Target = Node;
 
     fn deref(&self) -> &Self::Target {
@@ -210,7 +220,7 @@ impl<'a> Deref for NodeRef<'a> {
     }
 }
 
-pub struct NodeRefMut<'a> {
+pub struct SpatialRefMut<'a> {
     pub parent: &'a mut NodeId,
     pub children: &'a mut Vec<NodeId>,
     pub transform: &'a mut Transform,
@@ -219,7 +229,7 @@ pub struct NodeRefMut<'a> {
     pub node: &'a mut Node,
 }
 
-impl<'a> Deref for NodeRefMut<'a> {
+impl<'a> Deref for SpatialRefMut<'a> {
     type Target = Node;
 
     fn deref(&self) -> &Self::Target {
@@ -227,7 +237,7 @@ impl<'a> Deref for NodeRefMut<'a> {
     }
 }
 
-impl<'a> DerefMut for NodeRefMut<'a> {
+impl<'a> DerefMut for SpatialRefMut<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.node
     }
