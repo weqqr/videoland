@@ -12,7 +12,7 @@ pub fn prepare_ui(window: Res<Window>, mut ui: ResMut<Ui>, mut prepared_ui: ResM
     ui.begin_frame(&window);
 }
 
-pub fn render(
+pub fn render_primary_scene(
     window: Res<Window>,
     prepared_ui: Res<PreparedUi>,
     mut renderer: ResMut<Renderer>,
@@ -30,6 +30,7 @@ pub fn render(
             .primary_camera()
             .camera()
             .view_projection(extent.aspect_ratio()),
+        sg.current_scene(),
         &prepared_ui,
         extent,
     );

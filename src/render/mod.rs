@@ -359,6 +359,7 @@ impl Renderer {
     pub fn render(
         &mut self,
         camera_transform: Mat4,
+        scene: &Scene,
         prepared_ui: &PreparedUi,
         viewport_extent: Extent2D,
     ) {
@@ -391,10 +392,10 @@ impl Renderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 1.0,
+                            r: (scene.bg_color >> 24 & 0xFF) as f64 / 255.0,
+                            g: (scene.bg_color >> 16 & 0xFF) as f64 / 255.0,
+                            b: (scene.bg_color >> 8 & 0xFF) as f64 / 255.0,
+                            a: (scene.bg_color & 0xFF) as f64 / 255.0,
                         }),
                         store: wgpu::StoreOp::Store,
                     },
