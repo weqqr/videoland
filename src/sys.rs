@@ -26,7 +26,10 @@ pub fn render(
     };
 
     renderer.render(
-        sg.current_scene().primary_camera().camera().view_projection(extent.aspect_ratio()),
+        sg.current_scene()
+            .primary_camera()
+            .camera()
+            .view_projection(extent.aspect_ratio()),
         &prepared_ui,
         extent,
     );

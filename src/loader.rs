@@ -146,7 +146,12 @@ impl ShaderCompiler {
         }
     }
 
-    pub fn compile_hlsl(&self, path: &str, stage: ShaderStage, bytecode: ShaderBytecode) -> Result<Shader, Error> {
+    pub fn compile_hlsl(
+        &self,
+        path: &str,
+        stage: ShaderStage,
+        bytecode: ShaderBytecode,
+    ) -> Result<Shader, Error> {
         let source = read_shader_source(path)?;
 
         let blob = self

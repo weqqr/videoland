@@ -1,5 +1,5 @@
 use egui::{
-    menu, pos2, Align, CentralPanel, Color32, Frame, Layout, Rect, Sense, SidePanel, TopBottomPanel
+    menu, pos2, Align, CentralPanel, Color32, Frame, Layout, Rect, Sense, SidePanel, TopBottomPanel,
 };
 
 use crate::core::{Defer, Res, ResMut};
@@ -75,9 +75,7 @@ impl<'a> egui_tiles::Behavior<EditorPane> for Behavior<'a> {
 
                 painter.image(*texture_id, resp.rect, uv, Color32::WHITE);
 
-                ui.allocate_ui_at_rect(resp.rect, |ui: &mut egui::Ui| {
-                    ui.button("text")
-                });
+                ui.allocate_ui_at_rect(resp.rect, |ui: &mut egui::Ui| ui.button("text"));
             }
         }
 
@@ -155,13 +153,15 @@ pub fn show(
         ui.label("do stuff");
     });
 
-    CentralPanel::default().frame(Frame::none()).show(ui.ctx(), |ui| {
-        editor.tree.ui(
-            &mut Behavior {
-                renderer: &mut renderer,
-                sg: &mut sg,
-            },
-            ui,
-        )
-    });
+    CentralPanel::default()
+        .frame(Frame::none())
+        .show(ui.ctx(), |ui| {
+            editor.tree.ui(
+                &mut Behavior {
+                    renderer: &mut renderer,
+                    sg: &mut sg,
+                },
+                ui,
+            )
+        });
 }
