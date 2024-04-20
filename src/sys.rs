@@ -12,6 +12,14 @@ pub fn prepare_ui(window: Res<Window>, mut ui: ResMut<Ui>, mut prepared_ui: ResM
     ui.begin_frame(&window);
 }
 
+pub fn update_transform_hierarchy(
+    mut sg: ResMut<SceneGraph>,
+) {
+    for (_, scene) in sg.scenes_mut() {
+        scene.update_transform_hierarchy();
+    }
+}
+
 pub fn render_primary_scene(
     window: Res<Window>,
     prepared_ui: Res<PreparedUi>,

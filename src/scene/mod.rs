@@ -56,6 +56,13 @@ impl SceneGraph {
             .enumerate()
             .map(|(id, scene)| (SceneId::new(id), scene))
     }
+
+    pub fn scenes_mut(&mut self) -> impl Iterator<Item = (SceneId, &mut Scene)> {
+        self.nodes
+            .iter_mut()
+            .enumerate()
+            .map(|(id, scene)| (SceneId::new(id), scene))
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,6 +89,10 @@ impl Scene {
             primary_camera_id: None,
             nodes: Slab::new(),
         }
+    }
+
+    pub fn update_transform_hierarchy(&mut self) {
+
     }
 
     pub fn add_node(&mut self, node: Spatial) -> NodeId {
@@ -124,9 +135,11 @@ pub struct Spatial {
     parent: NodeId,
     children: Vec<NodeId>,
     transform: Transform,
+    world_transform: Transform,
     visible: bool,
     enabled: bool,
     node: Node,
+    dirty: bool,
 }
 
 impl Spatial {
@@ -135,9 +148,11 @@ impl Spatial {
             parent: NodeId::NONE,
             children: Vec::new(),
             transform: Transform::default(),
+            world_transform: Transform::default(),
             visible: true,
             enabled: true,
             node: node.into(),
+            dirty: true,
         }
     }
 
@@ -160,6 +175,7 @@ impl Spatial {
             visible: &mut self.visible,
             enabled: &mut self.enabled,
             node: &mut self.node,
+            dirty: &mut self.dirty,
         }
     }
 
@@ -212,6 +228,12 @@ pub struct SpatialRef<'a> {
     pub node: &'a Node,
 }
 
+impl<'a> SpatialRef<'a> {
+    fn transform(&self) -> &Transform {
+        self.transform
+    }
+}
+
 impl<'a> Deref for SpatialRef<'a> {
     type Target = Node;
 
@@ -227,6 +249,18 @@ pub struct SpatialRefMut<'a> {
     pub visible: &'a mut bool,
     pub enabled: &'a mut bool,
     pub node: &'a mut Node,
+    dirty: &'a mut bool,
+}
+
+impl<'a> SpatialRefMut<'a> {
+    pub fn transform(&self) -> &Transform {
+        self.transform
+    }
+
+    pub fn transform_mut(&mut self) -> &mut Transform {
+        *self.dirty = true;
+        self.transform
+    }
 }
 
 impl<'a> Deref for SpatialRefMut<'a> {
