@@ -31,7 +31,4 @@ impl Node {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct NodeId {
-    pub(super) handle: ArenaHandle<Spatial>,
-}
+pub type NodeHandle = ArenaHandle<Spatial>;

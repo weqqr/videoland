@@ -91,12 +91,31 @@ impl<T> Arena<T> {
         self.len == 0
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
-        self.cells.iter().filter_map(|cell| cell.item.as_ref())
+    pub fn iter(&self) -> impl Iterator<Item = (ArenaHandle<T>, &T)> {
+        self.cells.iter().enumerate().filter_map(|(index, cell)| {
+            let handle = ArenaHandle {
+                index: index as u32,
+                generation: cell.generation,
+                _pd: PhantomData,
+            };
+
+            cell.item.as_ref().map(|value| (handle, value))
+        })
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
-        self.cells.iter_mut().filter_map(|cell| cell.item.as_mut())
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (ArenaHandle<T>, &mut T)> {
+        self.cells
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(index, cell)| {
+                let handle = ArenaHandle {
+                    index: index as u32,
+                    generation: cell.generation,
+                    _pd: PhantomData,
+                };
+
+                cell.item.as_mut().map(|value| (handle, value))
+            })
     }
 }
 

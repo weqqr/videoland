@@ -6,7 +6,7 @@ mod node;
 mod pivot;
 mod transform;
 
-use crate::core::Arena;
+use crate::core::{Arena, ArenaHandle};
 
 pub use self::camera::*;
 pub use self::mesh::*;
@@ -15,29 +15,27 @@ pub use self::pivot::*;
 pub use self::transform::*;
 
 pub struct SceneGraph {
-    nodes: Vec<Scene>,
-    current_scene_id: Option<SceneId>,
+    nodes: Arena<Scene>,
+    current_scene_id: Option<SceneHandle>,
 }
 
 impl SceneGraph {
     pub fn new() -> Self {
         Self {
-            nodes: Vec::new(),
+            nodes: Arena::new(),
             current_scene_id: None,
         }
     }
 
-    pub fn add_scene(&mut self, scene: Scene) -> SceneId {
-        let id = self.nodes.len();
-        self.nodes.push(scene);
-        SceneId::new(id)
+    pub fn add_scene(&mut self, scene: Scene) -> SceneHandle {
+        self.nodes.insert(scene)
     }
 
-    pub fn set_current_scene_id(&mut self, id: SceneId) {
+    pub fn set_current_scene_id(&mut self, id: SceneHandle) {
         self.current_scene_id = Some(id);
     }
 
-    pub fn current_scene_id(&self) -> SceneId {
+    pub fn current_scene_id(&self) -> SceneHandle {
         self.current_scene_id.expect("current scene not set")
     }
 
@@ -46,39 +44,24 @@ impl SceneGraph {
             .expect("current scene doesn't exist")
     }
 
-    pub fn scene(&self, id: SceneId) -> Option<&Scene> {
-        self.nodes.get(id.index)
+    pub fn scene(&self, id: SceneHandle) -> Option<&Scene> {
+        self.nodes.get(id)
     }
 
-    pub fn scenes(&self) -> impl Iterator<Item = (SceneId, &Scene)> {
-        self.nodes
-            .iter()
-            .enumerate()
-            .map(|(id, scene)| (SceneId::new(id), scene))
+    pub fn scenes(&self) -> impl Iterator<Item = (SceneHandle, &Scene)> {
+        self.nodes.iter()
     }
 
-    pub fn scenes_mut(&mut self) -> impl Iterator<Item = (SceneId, &mut Scene)> {
-        self.nodes
-            .iter_mut()
-            .enumerate()
-            .map(|(id, scene)| (SceneId::new(id), scene))
+    pub fn scenes_mut(&mut self) -> impl Iterator<Item = (SceneHandle, &mut Scene)> {
+        self.nodes.iter_mut()
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SceneId {
-    pub(super) index: usize,
-}
-
-impl SceneId {
-    fn new(index: usize) -> Self {
-        Self { index }
-    }
-}
+pub type SceneHandle = ArenaHandle<Scene>;
 
 pub struct Scene {
     pub bg_color: u32,
-    primary_camera_id: Option<NodeId>,
+    primary_camera_id: Option<NodeHandle>,
     nodes: Arena<Spatial>,
 }
 
@@ -93,13 +76,11 @@ impl Scene {
 
     pub fn update_transform_hierarchy(&mut self) {}
 
-    pub fn add_node(&mut self, node: Spatial) -> NodeId {
-        NodeId {
-            handle: self.nodes.insert(node),
-        }
+    pub fn add_node(&mut self, node: Spatial) -> NodeHandle {
+        self.nodes.insert(node)
     }
 
-    pub fn set_primary_camera_id(&mut self, id: NodeId) {
+    pub fn set_primary_camera_id(&mut self, id: NodeHandle) {
         self.primary_camera_id = Some(id);
     }
 
@@ -107,33 +88,27 @@ impl Scene {
         self.node(self.primary_camera_id.expect("primary camera not set"))
     }
 
-    // pub fn nodes(&self) -> impl Iterator<Item = (NodeId, &Spatial)> {
-    //     self.nodes
-    //         .iter()
-    //         .map(|(id, spatial)| (NodeId::new(id), spatial))
-    // }
-
-    pub fn spatial(&self, handle: NodeId) -> &Spatial {
-        self.nodes.get(handle.handle).unwrap()
+    pub fn spatial(&self, handle: NodeHandle) -> &Spatial {
+        self.nodes.get(handle).unwrap()
     }
 
-    pub fn node(&self, handle: NodeId) -> SpatialRef {
+    pub fn node(&self, handle: NodeHandle) -> SpatialRef {
         self.spatial(handle).node()
     }
 
-    pub fn spatial_mut(&mut self, handle: NodeId) -> &mut Spatial {
-        self.nodes.get_mut(handle.handle).unwrap()
+    pub fn spatial_mut(&mut self, handle: NodeHandle) -> &mut Spatial {
+        self.nodes.get_mut(handle).unwrap()
     }
 
-    pub fn node_mut(&mut self, handle: NodeId) -> SpatialRefMut {
+    pub fn node_mut(&mut self, handle: NodeHandle) -> SpatialRefMut {
         self.spatial_mut(handle).node_mut()
     }
 }
 
 #[derive(Clone)]
 pub struct Spatial {
-    parent: Option<NodeId>,
-    children: Vec<NodeId>,
+    parent: Option<NodeHandle>,
+    children: Vec<NodeHandle>,
     transform: Transform,
     world_transform: Transform,
     visible: bool,
@@ -179,12 +154,12 @@ impl Spatial {
         }
     }
 
-    pub fn with_parent(mut self, parent: NodeId) -> Self {
+    pub fn with_parent(mut self, parent: NodeHandle) -> Self {
         self.parent = Some(parent);
         self
     }
 
-    pub fn with_children(mut self, children: Vec<NodeId>) -> Self {
+    pub fn with_children(mut self, children: Vec<NodeHandle>) -> Self {
         self.children = children;
         self
     }
@@ -204,11 +179,11 @@ impl Spatial {
         self
     }
 
-    pub fn attach_child(&mut self, child: NodeId) {
+    pub fn attach_child(&mut self, child: NodeHandle) {
         self.children.push(child);
     }
 
-    pub fn detach_child(&mut self, child: NodeId) {
+    pub fn detach_child(&mut self, child: NodeHandle) {
         let Some(position) = self.children.iter().position(|c| *c == child) else {
             return;
         };
@@ -218,8 +193,8 @@ impl Spatial {
 }
 
 pub struct SpatialRef<'a> {
-    pub parent: &'a Option<NodeId>,
-    pub children: &'a Vec<NodeId>,
+    pub parent: &'a Option<NodeHandle>,
+    pub children: &'a Vec<NodeHandle>,
     pub transform: &'a Transform,
     pub visible: &'a bool,
     pub enabled: &'a bool,
@@ -241,8 +216,8 @@ impl<'a> Deref for SpatialRef<'a> {
 }
 
 pub struct SpatialRefMut<'a> {
-    pub parent: &'a mut Option<NodeId>,
-    pub children: &'a mut Vec<NodeId>,
+    pub parent: &'a mut Option<NodeHandle>,
+    pub children: &'a mut Vec<NodeHandle>,
     pub transform: &'a mut Transform,
     pub visible: &'a mut bool,
     pub enabled: &'a mut bool,

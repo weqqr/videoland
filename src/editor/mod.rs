@@ -4,7 +4,7 @@ use egui::{
 
 use crate::core::{Defer, Res, ResMut};
 use crate::render::{Extent2D, Renderer};
-use crate::scene::{SceneGraph, SceneId};
+use crate::scene::{SceneGraph, SceneHandle};
 use crate::ui::Ui;
 
 pub enum EditorState {
@@ -14,7 +14,7 @@ pub enum EditorState {
 
 enum EditorPane {
     Viewport {
-        scene_id: SceneId,
+        scene_id: SceneHandle,
         texture_id: egui::TextureId,
     },
 }
@@ -22,7 +22,7 @@ enum EditorPane {
 impl EditorPane {
     fn title(&self) -> String {
         match self {
-            EditorPane::Viewport { scene_id, .. } => format!("{scene_id:?}"),
+            EditorPane::Viewport { scene_id, .. } => "scene".to_owned(),
         }
     }
 }
