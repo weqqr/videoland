@@ -63,14 +63,20 @@ pub struct Scene {
     pub bg_color: u32,
     primary_camera_id: Option<NodeHandle>,
     nodes: Arena<Spatial>,
+    root_node: NodeHandle,
 }
 
 impl Scene {
     pub fn new() -> Self {
+        let mut nodes = Arena::new();
+
+        let root_node = nodes.insert(Spatial::new(Pivot::new()));
+
         Self {
             bg_color: 0x102030FF,
             primary_camera_id: None,
-            nodes: Arena::new(),
+            nodes,
+            root_node,
         }
     }
 
@@ -78,6 +84,23 @@ impl Scene {
 
     pub fn add_node(&mut self, node: Spatial) -> NodeHandle {
         self.nodes.insert(node)
+    }
+
+    pub fn link(&mut self, parent: NodeHandle, child: NodeHandle) {
+        if let Some(previous_parent) = self.node(child).parent {
+            self.node_mut(*previous_parent).detach_child(child);
+        }
+
+        self.node_mut(parent).attach_child(child);
+        *self.node_mut(child).parent = Some(parent);
+    }
+
+    pub fn unlink(&mut self, child: NodeHandle) {
+        if let Some(previous_parent) = self.node(child).parent {
+            self.node_mut(*previous_parent).detach_child(child);
+        }
+
+        *self.node_mut(child).parent = None;
     }
 
     pub fn set_primary_camera_id(&mut self, id: NodeHandle) {
@@ -90,6 +113,10 @@ impl Scene {
 
     pub fn spatial(&self, handle: NodeHandle) -> &Spatial {
         self.nodes.get(handle).unwrap()
+    }
+
+    pub fn root(&self) -> NodeHandle {
+        self.root_node
     }
 
     pub fn node(&self, handle: NodeHandle) -> SpatialRef {
@@ -178,18 +205,6 @@ impl Spatial {
         self.enabled = enabled;
         self
     }
-
-    pub fn attach_child(&mut self, child: NodeHandle) {
-        self.children.push(child);
-    }
-
-    pub fn detach_child(&mut self, child: NodeHandle) {
-        let Some(position) = self.children.iter().position(|c| *c == child) else {
-            return;
-        };
-
-        self.children.remove(position);
-    }
 }
 
 pub struct SpatialRef<'a> {
@@ -233,6 +248,18 @@ impl<'a> SpatialRefMut<'a> {
     pub fn transform_mut(&mut self) -> &mut Transform {
         *self.dirty = true;
         self.transform
+    }
+
+    pub fn attach_child(&mut self, child: NodeHandle) {
+        self.children.push(child);
+    }
+
+    pub fn detach_child(&mut self, child: NodeHandle) {
+        let Some(position) = self.children.iter().position(|c| *c == child) else {
+            return;
+        };
+
+        self.children.remove(position);
     }
 }
 

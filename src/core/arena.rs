@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::ops::{Index, IndexMut};
 
 pub struct Arena<T> {
     cells: Vec<ArenaCell<T>>,
@@ -116,6 +117,20 @@ impl<T> Arena<T> {
 
                 cell.item.as_mut().map(|value| (handle, value))
             })
+    }
+}
+
+impl<T> Index<ArenaHandle<T>> for Arena<T> {
+    type Output = T;
+
+    fn index(&self, handle: ArenaHandle<T>) -> &Self::Output {
+        self.get(handle).unwrap()
+    }
+}
+
+impl<T> IndexMut<ArenaHandle<T>> for Arena<T> {
+    fn index_mut(&mut self, handle: ArenaHandle<T>) -> &mut Self::Output {
+        self.get_mut(handle).unwrap()
     }
 }
 
