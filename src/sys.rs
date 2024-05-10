@@ -1,5 +1,3 @@
-pub use crate::core::clear_events;
-
 use crate::core::{Res, ResMut};
 use crate::render::PreparedUi;
 use crate::render::{Extent2D, Renderer};
@@ -12,9 +10,7 @@ pub fn prepare_ui(window: Res<Window>, mut ui: ResMut<Ui>, mut prepared_ui: ResM
     ui.begin_frame(&window);
 }
 
-pub fn update_transform_hierarchy(
-    mut sg: ResMut<SceneGraph>,
-) {
+pub fn update_transform_hierarchy(mut sg: ResMut<SceneGraph>) {
     for (_, scene) in sg.scenes_mut() {
         scene.update_transform_hierarchy();
     }

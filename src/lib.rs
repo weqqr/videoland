@@ -26,7 +26,7 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window, WindowBuilder};
 
 use crate::asset::{ShaderStage, Vfs};
-use crate::core::{EventQueue, Registry, Schedule, Stage};
+use crate::core::{Registry, Schedule, Stage};
 use crate::input::InputState;
 use crate::loader::{Loader, ShaderBytecode, ShaderCompiler};
 use crate::render::PreparedUi;
@@ -80,7 +80,7 @@ impl AppState {
 
         let mut reg = Registry::new();
 
-        reg.insert(EventQueue::<KeyEvent>::new());
+        reg.register_event::<KeyEvent>();
 
         // window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
         // window.set_cursor_visible(false);
@@ -112,7 +112,7 @@ impl AppState {
         match event {
             WindowEvent::CloseRequested => return EventLoopIterationDecision::Break,
             WindowEvent::KeyboardInput { event, .. } => {
-                self.reg.res_mut::<EventQueue<KeyEvent>>().emit(event);
+                self.reg.event_queue_mut::<KeyEvent>().emit(event);
             }
             WindowEvent::Resized(size) => self.reg.res_mut::<Renderer>().resize(Extent2D {
                 width: size.width,
