@@ -6,7 +6,7 @@ mod node;
 mod pivot;
 mod transform;
 
-use slab::Slab;
+use crate::core::Arena;
 
 pub use self::camera::*;
 pub use self::mesh::*;
@@ -79,7 +79,7 @@ impl SceneId {
 pub struct Scene {
     pub bg_color: u32,
     primary_camera_id: Option<NodeId>,
-    nodes: Slab<Spatial>,
+    nodes: Arena<Spatial>,
 }
 
 impl Scene {
@@ -87,16 +87,16 @@ impl Scene {
         Self {
             bg_color: 0x102030FF,
             primary_camera_id: None,
-            nodes: Slab::new(),
+            nodes: Arena::new(),
         }
     }
 
-    pub fn update_transform_hierarchy(&mut self) {
-
-    }
+    pub fn update_transform_hierarchy(&mut self) {}
 
     pub fn add_node(&mut self, node: Spatial) -> NodeId {
-        NodeId::new(self.nodes.insert(node))
+        NodeId {
+            handle: self.nodes.insert(node),
+        }
     }
 
     pub fn set_primary_camera_id(&mut self, id: NodeId) {
@@ -107,14 +107,14 @@ impl Scene {
         self.node(self.primary_camera_id.expect("primary camera not set"))
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item = (NodeId, &Spatial)> {
-        self.nodes
-            .iter()
-            .map(|(id, spatial)| (NodeId::new(id), spatial))
-    }
+    // pub fn nodes(&self) -> impl Iterator<Item = (NodeId, &Spatial)> {
+    //     self.nodes
+    //         .iter()
+    //         .map(|(id, spatial)| (NodeId::new(id), spatial))
+    // }
 
     pub fn spatial(&self, handle: NodeId) -> &Spatial {
-        self.nodes.get(handle.index).unwrap()
+        self.nodes.get(handle.handle).unwrap()
     }
 
     pub fn node(&self, handle: NodeId) -> SpatialRef {
@@ -122,7 +122,7 @@ impl Scene {
     }
 
     pub fn spatial_mut(&mut self, handle: NodeId) -> &mut Spatial {
-        self.nodes.get_mut(handle.index).unwrap()
+        self.nodes.get_mut(handle.handle).unwrap()
     }
 
     pub fn node_mut(&mut self, handle: NodeId) -> SpatialRefMut {
@@ -130,9 +130,9 @@ impl Scene {
     }
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone)]
 pub struct Spatial {
-    parent: NodeId,
+    parent: Option<NodeId>,
     children: Vec<NodeId>,
     transform: Transform,
     world_transform: Transform,
@@ -145,7 +145,7 @@ pub struct Spatial {
 impl Spatial {
     pub fn new(node: impl Into<Node>) -> Self {
         Self {
-            parent: NodeId::NONE,
+            parent: None,
             children: Vec::new(),
             transform: Transform::default(),
             world_transform: Transform::default(),
@@ -180,12 +180,12 @@ impl Spatial {
     }
 
     pub fn with_parent(mut self, parent: NodeId) -> Self {
-        self.parent = parent;
+        self.parent = Some(parent);
         self
     }
 
-    pub fn with_children(mut self, parent: NodeId) -> Self {
-        self.parent = parent;
+    pub fn with_children(mut self, children: Vec<NodeId>) -> Self {
+        self.children = children;
         self
     }
 
@@ -205,8 +205,6 @@ impl Spatial {
     }
 
     pub fn attach_child(&mut self, child: NodeId) {
-        assert_ne!(child, NodeId::NONE, "attached node ID must not be NONE");
-
         self.children.push(child);
     }
 
@@ -220,7 +218,7 @@ impl Spatial {
 }
 
 pub struct SpatialRef<'a> {
-    pub parent: &'a NodeId,
+    pub parent: &'a Option<NodeId>,
     pub children: &'a Vec<NodeId>,
     pub transform: &'a Transform,
     pub visible: &'a bool,
@@ -243,7 +241,7 @@ impl<'a> Deref for SpatialRef<'a> {
 }
 
 pub struct SpatialRefMut<'a> {
-    pub parent: &'a mut NodeId,
+    pub parent: &'a mut Option<NodeId>,
     pub children: &'a mut Vec<NodeId>,
     pub transform: &'a mut Transform,
     pub visible: &'a mut bool,

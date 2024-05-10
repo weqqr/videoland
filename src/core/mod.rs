@@ -3,11 +3,13 @@
 pub mod defer;
 pub mod exec;
 pub mod mq;
+pub mod arena;
 pub mod query;
 
 pub use defer::*;
 pub use exec::*;
 pub use mq::*;
+pub use arena::*;
 pub use query::*;
 
 use std::any::{Any, TypeId};

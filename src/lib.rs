@@ -8,8 +8,6 @@ pub mod editor;
 pub mod input;
 pub mod loader;
 pub mod render;
-#[cfg(feature = "d3d12")]
-pub mod rhi;
 pub mod scene;
 pub mod settings;
 pub mod sys;

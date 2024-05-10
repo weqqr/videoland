@@ -1,9 +1,6 @@
 use crate::render::PreparedUi;
 use egui::epaint::Shadow;
-use egui::{
-    Align2, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Margin, RichText,
-    Rounding, Stroke, Vec2,
-};
+use egui::{vec2, Align2, Color32, Context, Frame, Margin, RichText, Rounding, Stroke, Vec2};
 use winit::event::WindowEvent;
 use winit::window::Window;
 
@@ -12,11 +9,11 @@ pub struct Ui {
     winit_state: egui_winit::State,
 }
 
-#[cfg(windows)]
-fn load_font() -> Vec<u8> {
-    // TODO: load native font
-    std::fs::read("C:\\windows\\fonts\\segoeui.ttf").unwrap()
-}
+// #[cfg(windows)]
+// fn load_font() -> Vec<u8> {
+//     // TODO: load native font
+//     std::fs::read("C:\\windows\\fonts\\segoeui.ttf").unwrap()
+// }
 
 impl Ui {
     pub fn new(window: &Window) -> Self {
@@ -24,23 +21,23 @@ impl Ui {
         let winit_state =
             egui_winit::State::new(ctx.clone(), ctx.viewport_id(), window, None, None);
 
-        let main = load_font();
+        // let main = load_font();
 
-        let mut fonts = FontDefinitions::default();
-        fonts
-            .font_data
-            .insert("main".to_owned(), FontData::from_owned(main));
+        // let mut fonts = FontDefinitions::default();
+        // fonts
+        //     .font_data
+        //     .insert("main".to_owned(), FontData::from_owned(main));
 
-        fonts
-            .families
-            .get_mut(&FontFamily::Proportional)
-            .unwrap()
-            .insert(0, "main".to_owned());
+        // fonts
+        //     .families
+        //     .get_mut(&FontFamily::Proportional)
+        //     .unwrap()
+        //     .insert(0, "main".to_owned());
 
-        fonts.families.insert(
-            egui::FontFamily::Name("main".into()),
-            vec!["main".to_owned()],
-        );
+        // fonts.families.insert(
+        //     egui::FontFamily::Name("main".into()),
+        //     vec!["main".to_owned()],
+        // );
 
         // let codicon = std::fs::read("data/fonts/codicon.ttf").unwrap();
         // let tweak = FontTweak {
@@ -64,7 +61,7 @@ impl Ui {
         //     vec!["codicon".to_owned()],
         // );
 
-        ctx.set_fonts(fonts);
+        // ctx.set_fonts(fonts);
 
         ctx.style_mut(|style| {
             style.visuals.widgets.noninteractive.fg_stroke.color =
@@ -86,18 +83,19 @@ impl Ui {
 
     pub fn status_bar(&self, data: &[(&str, &str)]) {
         egui::Window::new("--videoland-status-bar")
-            .anchor(Align2::LEFT_TOP, Vec2::ZERO)
+            .anchor(Align2::LEFT_TOP, vec2(10.0, 10.0))
             .title_bar(false)
             .movable(false)
             .collapsible(false)
-            .fixed_size(Vec2::new(100.0, 16.0))
+            .resizable(false)
+            .fixed_size(Vec2::new(256.0, 32.0))
             .frame(Frame {
-                inner_margin: Margin::symmetric(4.0, 1.0),
+                inner_margin: Margin::symmetric(8.0, 4.0),
                 outer_margin: Margin::same(0.0),
                 rounding: Rounding::ZERO,
                 shadow: Shadow::NONE,
                 fill: Color32::BLACK,
-                stroke: Stroke::new(1.0, Color32::DARK_GRAY),
+                stroke: Stroke::NONE,
             })
             .show(&self.ctx, |ui| {
                 status_data(ui, data);
