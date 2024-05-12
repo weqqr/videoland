@@ -1,11 +1,13 @@
 use std::time::{Duration, Instant};
 
-pub struct Timings {
+use crate::core::ResMut;
+
+pub struct Time {
     start_of_previous_frame: Instant,
     dtime: Duration,
 }
 
-impl Timings {
+impl Time {
     pub fn new() -> Self {
         Self {
             start_of_previous_frame: Instant::now(),
@@ -30,4 +32,8 @@ impl Timings {
         self.dtime = now - self.start_of_previous_frame;
         self.start_of_previous_frame = now;
     }
+}
+
+pub fn advance(mut time: ResMut<Time>) {
+    time.advance_frame();
 }

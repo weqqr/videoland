@@ -11,7 +11,7 @@ pub mod render;
 pub mod scene;
 pub mod settings;
 pub mod sys;
-pub mod timing;
+pub mod time;
 pub mod ui;
 
 pub use glam as math;
@@ -34,7 +34,7 @@ use crate::render::PreparedUi;
 use crate::render::{Extent2D, Renderer};
 use crate::scene::SceneGraph;
 use crate::settings::Settings;
-use crate::timing::Timings;
+use crate::time::Time;
 use crate::ui::Ui;
 
 #[derive(Default)]
@@ -87,7 +87,7 @@ impl AppState {
         // window.set_cursor_visible(false);
 
         reg.insert(InputState::new());
-        reg.insert(Timings::new());
+        reg.insert(Time::new());
         reg.insert(ui);
         reg.insert(window);
         reg.insert(Loader::new(vfs, thread_pool));
@@ -132,12 +132,6 @@ impl AppState {
     }
 
     fn update(&mut self) -> EventLoopIterationDecision {
-        {
-            let mut timings = self.reg.res_mut::<Timings>();
-            timings.advance_frame();
-            let dt = timings.dtime_s() as f32;
-        }
-
         (self.schedule)(&self.reg).execute(Stage::EachStep, &mut self.reg);
 
         self.reg.res_mut::<InputState>().reset_mouse_movement();
