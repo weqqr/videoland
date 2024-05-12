@@ -8,11 +8,8 @@ use pollster::FutureExt;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use tracing::info;
 use uuid::Uuid;
-use wgpu;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
-
-pub mod fg;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Extent2D {

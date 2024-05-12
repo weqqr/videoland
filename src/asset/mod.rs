@@ -5,11 +5,9 @@ use ahash::AHashMap;
 use uuid::Uuid;
 
 mod model;
-mod scene;
 mod shader;
 
 pub use self::model::*;
-pub use self::scene::*;
 pub use self::shader::*;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
