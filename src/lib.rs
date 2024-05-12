@@ -15,6 +15,7 @@ pub mod timing;
 pub mod ui;
 
 pub use glam as math;
+pub use tracing as log;
 pub use winit;
 
 use std::sync::Arc;
