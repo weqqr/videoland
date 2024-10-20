@@ -27,7 +27,7 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
 wgpu = { version = "22.1.0", default-features = false, features = ["spirv"] }
-winit = "0.29.14"
+winit = "0.30.5"
 
 [dependencies.windows]
 version = "0.54.0"

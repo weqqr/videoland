@@ -16,15 +16,16 @@ pub mod ui;
 
 pub use glam as math;
 pub use tracing as log;
+pub use uuid;
 pub use winit;
+use winit::application::ApplicationHandler;
 
 use std::sync::Arc;
 
 use rayon::ThreadPoolBuilder;
-use winit::dpi::PhysicalSize;
-use winit::event::{DeviceEvent, Event, KeyEvent, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{Window, WindowBuilder};
+use winit::event::{DeviceEvent, KeyEvent, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::window::Window;
 
 use crate::asset::{ShaderStage, Vfs};
 use crate::core::{Registry, Schedule, Stage};
@@ -48,7 +49,7 @@ struct AppState {
 }
 
 impl AppState {
-    fn new(schedule: Box<dyn Fn(&Registry) -> Schedule>, window: Window) -> Self {
+    fn new(window: Window) -> Self {
         let settings = Settings::load_global();
 
         let thread_pool = Arc::new(ThreadPoolBuilder::new().num_threads(4).build().unwrap());
@@ -88,7 +89,7 @@ impl AppState {
 
         reg.insert(InputState::new());
         reg.insert(Time::new());
-        // reg.insert(ui);
+        reg.insert(ui);
         reg.insert(window);
         reg.insert(Loader::new(vfs, thread_pool));
         reg.insert(settings);
@@ -97,9 +98,12 @@ impl AppState {
         reg.insert(EngineState::default());
         reg.insert(SceneGraph::new());
 
-        schedule(&reg).execute(Stage::Init, &mut reg);
+        // schedule(&reg).execute(Stage::Init, &mut reg);
 
-        Self { reg, schedule }
+        Self {
+            reg,
+            schedule: Box::new(|_| Schedule::new()),
+        }
     }
 
     fn handle_window_event(&mut self, event: WindowEvent) -> EventLoopIterationDecision {
@@ -159,6 +163,7 @@ pub struct AppInfo {
 pub struct App {
     schedule: Box<dyn Fn(&Registry) -> Schedule>,
     info: AppInfo,
+    state: Option<AppState>,
 }
 
 impl App {
@@ -166,42 +171,59 @@ impl App {
         Self {
             schedule: Box::new(schedule),
             info,
+            state: None,
         }
     }
 
-    pub fn run(self) {
+    pub fn run(mut self) {
         tracing_subscriber::fmt()
             .with_max_level(tracing::Level::INFO)
             .init();
 
         let event_loop = EventLoop::new().unwrap();
-        let window = WindowBuilder::new()
-            .with_inner_size(PhysicalSize::new(1600, 900))
-            .with_title(&self.info.title)
-            .build(&event_loop)
-            .unwrap();
-
-        let mut state = AppState::new(self.schedule, window);
 
         event_loop.set_control_flow(ControlFlow::Poll);
 
-        event_loop
-            .run(move |event, elwt| {
-                let cf = match event {
-                    Event::WindowEvent { event, .. } => state.handle_window_event(event),
-                    Event::DeviceEvent { event, .. } => state.handle_device_event(event),
-                    Event::AboutToWait => state.update(),
-                    Event::LoopExiting => {
-                        state.reg.res::<Settings>().save();
-                        EventLoopIterationDecision::Break
-                    }
-                    _ => EventLoopIterationDecision::Continue,
-                };
+        event_loop.run_app(&mut self).unwrap();
+    }
+}
 
-                if let EventLoopIterationDecision::Break = cf {
-                    elwt.exit();
-                }
-            })
+impl ApplicationHandler for App {
+    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        let window = event_loop
+            .create_window(Window::default_attributes().with_title(&self.info.title))
             .unwrap();
+        self.state = Some(AppState::new(window));
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        window_id: winit::window::WindowId,
+        event: WindowEvent,
+    ) {
+        let it = self.state.as_mut().map(|s| s.handle_window_event(event));
+        if let Some(EventLoopIterationDecision::Break) = it {
+            event_loop.exit();
+        }
+    }
+
+    fn device_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        device_id: winit::event::DeviceId,
+        event: DeviceEvent,
+    ) {
+        let it = self.state.as_mut().map(|s| s.handle_device_event(event));
+        if let Some(EventLoopIterationDecision::Break) = it {
+            event_loop.exit();
+        }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        let it = self.state.as_mut().map(|s| s.update());
+        if let Some(EventLoopIterationDecision::Break) = it {
+            event_loop.exit();
+        }
     }
 }
