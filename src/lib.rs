@@ -84,11 +84,11 @@ impl AppState {
         reg.register_event::<KeyEvent>();
 
         // window.set_cursor_grab(CursorGrabMode::Confined).unwrap();
-        // window.set_cursor_visible(false);
+        window.set_cursor_visible(false);
 
         reg.insert(InputState::new());
         reg.insert(Time::new());
-        reg.insert(ui);
+        // reg.insert(ui);
         reg.insert(window);
         reg.insert(Loader::new(vfs, thread_pool));
         reg.insert(settings);

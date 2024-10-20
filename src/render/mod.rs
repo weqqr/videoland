@@ -113,6 +113,7 @@ impl Renderer {
                     label: None,
                     required_features: wgpu::Features::SPIRV_SHADER_PASSTHROUGH,
                     required_limits: wgpu::Limits::default(),
+                    memory_hints: wgpu::MemoryHints::default(),
                 },
                 None,
             )
@@ -121,7 +122,7 @@ impl Renderer {
 
         let surface_format = surface.get_capabilities(&adapter).formats[0];
 
-        let egui_renderer = egui_wgpu::Renderer::new(&device, surface_format, None, 1);
+        let egui_renderer = egui_wgpu::Renderer::new(&device, surface_format, None, 1, false);
 
         Self {
             instance,
@@ -177,11 +178,13 @@ impl Renderer {
                     module: &vs,
                     entry_point: "vs_main",
                     buffers: &[crate::asset::Vertex::layout()],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &fs,
                     entry_point: "fs_main",
                     targets: &[Some(self.surface_format.into())],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
                 }),
                 label: None,
                 layout: Some(&pipeline_layout),
@@ -189,6 +192,7 @@ impl Renderer {
                 depth_stencil: None,
                 multisample: wgpu::MultisampleState::default(),
                 multiview: None,
+                cache: None,
             });
 
         let id = Uuid::new_v4();
@@ -400,7 +404,7 @@ impl Renderer {
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
-            });
+            }).forget_lifetime();
 
             self.egui_renderer.render(
                 &mut rp,

@@ -6,7 +6,7 @@ use winit::window::Window;
 
 pub struct Ui {
     ctx: egui::Context,
-    winit_state: egui_winit::State,
+    // winit_state: egui_winit::State,
 }
 
 // #[cfg(windows)]
@@ -18,8 +18,8 @@ pub struct Ui {
 impl Ui {
     pub fn new(window: &Window) -> Self {
         let ctx = egui::Context::default();
-        let winit_state =
-            egui_winit::State::new(ctx.clone(), ctx.viewport_id(), window, None, None);
+        // let winit_state =
+        //     egui_winit::State::new(ctx.clone(), ctx.viewport_id(), window, None, None);
 
         // let main = load_font();
 
@@ -69,16 +69,16 @@ impl Ui {
             style.visuals.widgets.inactive.fg_stroke.color = Color32::from_rgb(0xD6, 0xD6, 0xD6);
         });
 
-        Self { ctx, winit_state }
+        Self { ctx }
     }
 
     pub fn on_event(&mut self, window: &Window, event: &WindowEvent) {
-        let _ = self.winit_state.on_window_event(window, event);
+        // let _ = self.winit_state.on_window_event(window, event);
     }
 
     pub fn begin_frame(&mut self, window: &Window) {
-        let input = self.winit_state.take_egui_input(window);
-        self.ctx.begin_frame(input);
+        // let input = self.winit_state.take_egui_input(window);
+        self.ctx.begin_frame(egui::RawInput::default());
     }
 
     pub fn status_bar(&self, data: &[(&str, &str)]) {
@@ -105,8 +105,9 @@ impl Ui {
     pub fn finish_frame(&mut self, window: &Window) -> PreparedUi {
         let output = self.ctx.end_frame();
 
-        self.winit_state
-            .handle_platform_output(window, output.platform_output);
+        // self.winit_state
+        // .handle_platform_output(window, output.platform_output);
+
         let shapes = self
             .ctx
             .tessellate(output.shapes, window.scale_factor() as f32);
