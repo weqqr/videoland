@@ -78,7 +78,7 @@ impl Ui {
 
     pub fn begin_frame(&mut self, window: &Window) {
         // let input = self.winit_state.take_egui_input(window);
-        self.ctx.begin_frame(egui::RawInput::default());
+        self.ctx.begin_pass(egui::RawInput::default());
     }
 
     pub fn status_bar(&self, data: &[(&str, &str)]) {
@@ -103,7 +103,7 @@ impl Ui {
     }
 
     pub fn finish_frame(&mut self, window: &Window) -> PreparedUi {
-        let output = self.ctx.end_frame();
+        let output = self.ctx.end_pass();
 
         // self.winit_state
         // .handle_platform_output(window, output.platform_output);

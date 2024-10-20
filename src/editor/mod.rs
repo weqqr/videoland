@@ -75,7 +75,7 @@ impl<'a> egui_tiles::Behavior<EditorPane> for Behavior<'a> {
 
                 painter.image(*texture_id, resp.rect, uv, Color32::WHITE);
 
-                ui.allocate_ui_at_rect(resp.rect, |ui: &mut egui::Ui| ui.button("text"));
+                ui.allocate_new_ui(egui::UiBuilder::new().max_rect(resp.rect), |ui: &mut egui::Ui| ui.button("text"));
             }
         }
 

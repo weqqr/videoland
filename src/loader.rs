@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::asset::{import_obj, AssetId, Vfs};
@@ -135,7 +134,7 @@ fn shader_entry_point(stage: ShaderStage) -> &'static str {
 
 impl ShaderCompiler {
     pub fn new() -> Self {
-        let dxc = Dxc::new(Some(PathBuf::from("bin"))).unwrap();
+        let dxc = Dxc::new(None).unwrap();
         let compiler = dxc.create_compiler().unwrap();
         let library = dxc.create_library().unwrap();
 
